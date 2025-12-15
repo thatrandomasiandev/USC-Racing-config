@@ -10,9 +10,10 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 BACKEND_DIR = PROJECT_ROOT / "backend"
 
-# Add paths to sys.path BEFORE any imports
-sys.path.insert(0, str(BACKEND_DIR))
-sys.path.insert(0, str(BACKEND_DIR / "internal"))
+# Add backend directory to Python path so we can import main
+# This allows main.py to use 'from internal.config.settings import settings'
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 # Set environment variables BEFORE imports
 os.environ.setdefault("TEL_HOST", "0.0.0.0")
@@ -24,9 +25,24 @@ os.environ.setdefault("TEL_DATA_DIR", "/tmp")
 os.environ.setdefault("MOTEC_ENABLED", "false")
 os.environ.setdefault("MOTEC_NAS_DISCOVERY_SCAN_ON_STARTUP", "false")
 
-# Import the FastAPI app directly
-# Vercel expects 'handler' to be the ASGI app (FastAPI instance)
-from main import app
+# Set paths for templates and static files (Vercel read-only filesystem)
+# These should exist in the repo
+os.environ.setdefault("TEL_TEMPLATES_DIR", str(PROJECT_ROOT / "frontend" / "templates"))
+os.environ.setdefault("TEL_STATIC_DIR", str(PROJECT_ROOT / "frontend" / "static"))
 
-# Export the FastAPI app as 'handler' - this is what Vercel looks for
-handler = app
+# Import the FastAPI app
+# Change to backend directory to ensure relative imports work
+# This is important because main.py uses 'from internal.config.settings'
+original_cwd = os.getcwd()
+try:
+    os.chdir(str(BACKEND_DIR))
+    # Now import main - it will resolve 'internal' as backend/internal
+    from main import app
+finally:
+    os.chdir(original_cwd)
+
+# Wrap FastAPI app with Mangum for AWS Lambda/Vercel compatibility
+from mangum import Mangum
+
+# Export the handler - Mangum wraps FastAPI for serverless
+handler = Mangum(app, lifespan="off")
