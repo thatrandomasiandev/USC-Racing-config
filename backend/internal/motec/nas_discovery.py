@@ -54,8 +54,11 @@ class NasDiscoveryService:
         self.scan_thread: Optional[threading.Thread] = None
         self.running = False
         
-        # Start background scanning if enabled
-        if self.discovery_enabled and self.scan_on_startup:
+        # Start background scanning if enabled (skip on serverless platforms like Vercel)
+        # Check if we're in a serverless environment
+        import os
+        is_serverless = os.environ.get("VERCEL") == "1" or os.environ.get("AWS_LAMBDA_FUNCTION_NAME") is not None
+        if self.discovery_enabled and self.scan_on_startup and not is_serverless:
             self.start_background_scanning()
     
     def discover_nas_path(self) -> Optional[str]:
