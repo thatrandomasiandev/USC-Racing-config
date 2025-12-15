@@ -35,7 +35,9 @@ if settings.MOTEC_ENABLED:
         motec_nas_discovery = NasDiscoveryService(settings.get_motec_config())
         motec_recommendation_service = MotecRecommendationService(motec_file_service, motec_config_service)
     except Exception as e:
+        import traceback
         print(f"Warning: MoTeC integration disabled due to error: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
         motec_recommendation_service = None
 else:
     motec_recommendation_service = None

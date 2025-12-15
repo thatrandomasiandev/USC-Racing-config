@@ -50,19 +50,37 @@ async def error_route(path: str = "", error_msg: str = None, error_type: str = N
 
 # Try to import the FastAPI app
 # Vercel expects 'handler' to be the ASGI app
-handler = None
-import_error = None
-
 try:
-    from main import app as handler
+    from main import app
+    handler = app
 except Exception as e:
-    import_error = e
     # Store error info for error handler
-    error_app.state.error_msg = str(e)
-    error_app.state.error_type = type(e).__name__
-    error_app.state.error_tb = traceback.format_exc()
+    error_msg = str(e)
+    error_type = type(e).__name__
+    error_tb = traceback.format_exc()
+    
+    # Update error route to show the actual error
+    @error_app.get("/")
+    @error_app.get("/{path:path}")
+    async def error_route_with_info(path: str = ""):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Failed to initialize application",
+                "message": error_msg,
+                "type": error_type,
+                "traceback": error_tb,
+                "paths": {
+                    "project_root": str(PROJECT_ROOT),
+                    "backend_dir": str(BACKEND_DIR),
+                    "backend_exists": BACKEND_DIR.exists(),
+                    "sys_path": sys.path[:5]
+                }
+            }
+        )
+    
     handler = error_app
 
-# If handler is still None, use error app
-if handler is None:
+# Ensure handler is always set (Vercel requirement)
+if not handler:
     handler = error_app

@@ -23,9 +23,15 @@ class MotecConfigService:
         self.channel_mappings_file = Path(config.get("channel_mappings_file", "config/motec/channel_mappings.json"))
         self.car_profiles_file = Path(config.get("car_profiles_file", "config/motec/car_profiles.json"))
         
-        # Create directories if needed
-        self.channel_mappings_file.parent.mkdir(parents=True, exist_ok=True)
-        self.car_profiles_file.parent.mkdir(parents=True, exist_ok=True)
+        # Create directories if needed (skip on read-only filesystems like Vercel)
+        try:
+            self.channel_mappings_file.parent.mkdir(parents=True, exist_ok=True)
+        except (OSError, PermissionError):
+            pass  # Read-only filesystem, skip directory creation
+        try:
+            self.car_profiles_file.parent.mkdir(parents=True, exist_ok=True)
+        except (OSError, PermissionError):
+            pass  # Read-only filesystem, skip directory creation
         
         # Load mappings
         self._channel_mappings: Dict[str, List[MotecChannelConfig]] = {}

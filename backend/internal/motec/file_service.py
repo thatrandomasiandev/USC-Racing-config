@@ -29,10 +29,19 @@ class MotecFileService:
         self.ldx_output_dir = Path(config.get("ldx_output_dir", "data/motec/ldx"))
         self.ld_scan_dir = Path(config.get("ld_scan_dir", "data/motec/ld"))
         
-        # Create directories if they don't exist
-        self.ldx_template_dir.mkdir(parents=True, exist_ok=True)
-        self.ldx_output_dir.mkdir(parents=True, exist_ok=True)
-        self.ld_scan_dir.mkdir(parents=True, exist_ok=True)
+        # Create directories if they don't exist (skip on read-only filesystems like Vercel)
+        try:
+            self.ldx_template_dir.mkdir(parents=True, exist_ok=True)
+        except (OSError, PermissionError):
+            pass  # Read-only filesystem, skip directory creation
+        try:
+            self.ldx_output_dir.mkdir(parents=True, exist_ok=True)
+        except (OSError, PermissionError):
+            pass  # Read-only filesystem, skip directory creation
+        try:
+            self.ld_scan_dir.mkdir(parents=True, exist_ok=True)
+        except (OSError, PermissionError):
+            pass  # Read-only filesystem, skip directory creation
     
     def _resolve_path(self, path: str) -> Path:
         """Resolve path, checking NAS base path if configured"""
