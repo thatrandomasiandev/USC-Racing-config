@@ -81,21 +81,13 @@ if app is None:
     app = error_app
 
 # Wrap FastAPI app with Mangum for AWS Lambda/Vercel compatibility
-try:
-    from mangum import Mangum
-    handler = Mangum(app, lifespan="off")
-except Exception as e:
-    # If Mangum fails, create a simple handler
-    print(f"MANGUM ERROR: {str(e)}", file=sys.stderr)
-    print(traceback.format_exc(), file=sys.stderr)
-    
-    def handler(event, context):
-        return {
-            "statusCode": 500,
-            "headers": {"Content-Type": "application/json"},
-            "body": json.dumps({
-                "error": "Mangum initialization failed",
-                "message": str(e),
-                "traceback": traceback.format_exc()
-            })
-        }
+# Vercel expects a callable handler function
+from mangum import Mangum
+
+# Create Mangum adapter
+mangum_adapter = Mangum(app, lifespan="off")
+
+# Export as handler - Vercel will call this function
+def handler(event, context):
+    """Vercel serverless function handler"""
+    return mangum_adapter(event, context)
