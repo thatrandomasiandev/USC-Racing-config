@@ -52,9 +52,12 @@ async def error_route(path: str = "", error_msg: str = None, error_type: str = N
 
 # Try to import the FastAPI app
 # Vercel expects 'handler' to be the ASGI app
+# Use Mangum to wrap FastAPI for Vercel compatibility
 try:
+    from mangum import Mangum
     from main import app
-    handler = app
+    # Wrap FastAPI app with Mangum for Vercel compatibility
+    handler = Mangum(app, lifespan="off")
 except Exception as e:
     # Store error info for error handler
     error_msg = str(e)
