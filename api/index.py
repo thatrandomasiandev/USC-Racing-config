@@ -21,6 +21,8 @@ os.environ.setdefault("TEL_PORT", "8000")
 os.environ.setdefault("TEL_CORS_ORIGINS", "*")
 os.environ.setdefault("TEL_LOG_ENABLED", "false")
 os.environ.setdefault("TEL_DATA_DIR", "/tmp")
+# Disable MoTeC on Vercel (read-only filesystem, no NAS access)
+os.environ.setdefault("MOTEC_ENABLED", "false")
 
 # Create error handler first (in case imports fail)
 from fastapi import FastAPI
