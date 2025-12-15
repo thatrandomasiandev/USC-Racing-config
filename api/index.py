@@ -23,6 +23,7 @@ os.environ.setdefault("TEL_LOG_ENABLED", "false")
 os.environ.setdefault("TEL_DATA_DIR", "/tmp")
 # Disable MoTeC on Vercel (read-only filesystem, no NAS access)
 os.environ.setdefault("MOTEC_ENABLED", "false")
+os.environ.setdefault("MOTEC_NAS_DISCOVERY_SCAN_ON_STARTUP", "false")
 
 # Create error handler first (in case imports fail)
 from fastapi import FastAPI
@@ -52,12 +53,10 @@ async def error_route(path: str = "", error_msg: str = None, error_type: str = N
 
 # Try to import the FastAPI app
 # Vercel expects 'handler' to be the ASGI app
-# Use Mangum to wrap FastAPI for Vercel compatibility
 try:
-    from mangum import Mangum
     from main import app
-    # Wrap FastAPI app with Mangum for Vercel compatibility
-    handler = Mangum(app, lifespan="off")
+    # Export the FastAPI app directly - Vercel supports ASGI apps
+    handler = app
 except Exception as e:
     # Store error info for error handler
     error_msg = str(e)
