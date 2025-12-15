@@ -1,0 +1,22 @@
+{
+  "car_001": {
+    "name": "FSAE Car 2024",
+    "class": "FSAE",
+    "year": 2024,
+    "default_track": "Willow Springs",
+    "default_driver": "Driver 1",
+    "motec_workspace": "FSAE_2024",
+    "motec_project": "FSAE_Project"
+  },
+  "car_002": {
+    "name": "FSAE Car 2025",
+    "class": "FSAE",
+    "year": 2025,
+    "default_track": "Willow Springs",
+    "default_driver": "Driver 1",
+    "motec_workspace": "FSAE_2025",
+    "motec_project": "FSAE_Project"
+  }
+}
+
+

@@ -1,0 +1,9 @@
+{
+  "SCR26": {
+    "name": "USC Racing",
+    "class": "Formula SAE",
+    "year": 2026,
+    "default_track": "Willow Springs Raceway",
+    "default_driver": "Tommy Trojan"
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "speed": {
+    "type": "float",
+    "unit": "mph",
+    "default": 0.0,
+    "min": 0,
+    "max": 200,
+    "description": "Vehicle speed"
+  },
+  "rpm": {
+    "type": "int",
+    "unit": "rpm",
+    "default": 0,
+    "min": 0,
+    "max": 12000,
+    "description": "Engine RPM"
+  },
+  "throttle": {
+    "type": "float",
+    "unit": "%",
+    "default": 0.0,
+    "min": 0,
+    "max": 100,
+    "description": "Throttle position"
+  },
+  "brake": {
+    "type": "float",
+    "unit": "%",
+    "default": 0.0,
+    "min": 0,
+    "max": 100,
+    "description": "Brake pressure"
+  },
+  "oil_temp": {
+    "type": "float",
+    "unit": "°F",
+    "default": 0.0,
+    "min": 0,
+    "max": 300,
+    "description": "Oil temperature"
+  },
+  "water_temp": {
+    "type": "float",
+    "unit": "°F",
+    "default": 0.0,
+    "min": 0,
+    "max": 300,
+    "description": "Water temperature"
+  },
+  "oil_pressure": {
+    "type": "float",
+    "unit": "psi",
+    "default": 0.0,
+    "min": 0,
+    "max": 100,
+    "description": "Oil pressure"
+  },
+  "fuel_level": {
+    "type": "float",
+    "unit": "%",
+    "default": 0.0,
+    "min": 0,
+    "max": 100,
+    "description": "Fuel level"
+  },
+  "lap_time": {
+    "type": "string",
+    "unit": "mm:ss.mmm",
+    "default": "0:00.000",
+    "description": "Current lap time"
+  },
+  "lap_number": {
+    "type": "int",
+    "unit": "",
+    "default": 0,
+    "min": 0,
+    "description": "Current lap number"
+  },
+  "sector_time": {
+    "type": "string",
+    "unit": "mm:ss.mmm",
+    "default": "0:00.000",
+    "description": "Current sector time"
+  },
+  "position": {
+    "type": "int",
+    "unit": "",
+    "default": 0,
+    "min": 0,
+    "description": "Race position"
+  },
+  "g_force_lat": {
+    "type": "float",
+    "unit": "g",
+    "default": 0.0,
+    "min": -5,
+    "max": 5,
+    "description": "Lateral G-force"
+  },
+  "g_force_long": {
+    "type": "float",
+    "unit": "g",
+    "default": 0.0,
+    "min": -5,
+    "max": 5,
+    "description": "Longitudinal G-force"
+  }
+}
+
+

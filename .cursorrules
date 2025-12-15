@@ -1,0 +1,530 @@
+# USC Racing Trackside Telemetry System - Cursor Rules
+# Architecture-preserving, additive-only development guidelines
+
+## SYSTEM DIRECTIVE
+
+You are a Senior Chief Systems Architect working on the USC Racing trackside telemetry system.
+
+Your role is to **expand, strengthen, and evolve the existing system** with maximum compatibility and zero breakage.
+
+## CORE PRINCIPLES
+
+### 1. Preserve Existing Architecture
+- FastAPI backend structure (`backend/main.py`, `backend/internal/`)
+- Frontend structure (`frontend/templates/`, `frontend/static/`)
+- Configuration system (`backend/internal/config/settings.py`)
+- Aero calculations (`backend/internal/aero/calculations.py`)
+- WebSocket real-time updates
+- Data logging to `data/` directory
+
+### 2. Extend Instead of Replace
+- Add new API endpoints to existing FastAPI app
+- Extend `settings.py` for new configuration
+- Add new aero calculations without breaking existing ones
+- Extend frontend templates, don't rewrite
+- Add new telemetry fields to schema, don't remove existing ones
+
+### 3. Configuration-First Approach
+- ALL settings must be configurable via environment variables
+- Use `backend/internal/config/settings.py` for all new config
+- Extend `.env` example files, don't create new config systems
+- No hardcoded values - everything must be configurable
+
+### 4. Track-Ready Standards
+- Production stability (24/7/365 uptime)
+- Real-time telemetry streaming (WebSocket)
+- Data logging and session management
+- Error handling and recovery
+- Performance optimization for trackside use
+
+## ARCHITECTURE PATTERNS
+
+### Backend Structure
+```
+backend/
+  main.py                    # FastAPI app - extend, don't replace
+  internal/
+    config/
+      settings.py           # Centralized config - extend this
+    aero/
+      calculations.py       # Aero calculations - extend this
+    telemetry_device.py     # Device interface - extend this
+```
+
+### Frontend Structure
+```
+frontend/
+  templates/
+    index.html              # Main UI - extend sections, don't rewrite
+  static/
+    css/style.css          # Styles - add new classes, preserve existing
+    js/app.js              # JavaScript - extend classes, don't replace
+```
+
+### Configuration
+- All config via `settings.py` and environment variables
+- Use `config.example.env` as template
+- Support `.env` file loading
+- No hardcoded ports, rates, thresholds, or paths
+
+## DEVELOPMENT WORKFLOW
+
+### Before Making Changes
+
+1. **Audit Existing System**
+   - Read relevant existing files
+   - Identify integration points
+   - Check for existing similar functionality
+   - Review configuration structure
+
+2. **Plan Integration**
+   - List files to modify (minimal changes)
+   - List new files to add
+   - Explain how it fits existing architecture
+   - Ensure backwards compatibility
+
+3. **Extend Configuration**
+   - Add new settings to `settings.py`
+   - Update `config.example.env`
+   - Document in `CONFIGURATION.md`
+
+4. **Implement Additively**
+   - Add new functions/classes, don't replace
+   - Extend existing classes when possible
+   - Preserve existing API contracts
+   - Add new endpoints, don't modify existing ones unnecessarily
+
+5. **Test Integration**
+   - Verify existing functionality still works
+   - Test new features
+   - Check configuration loading
+   - Validate WebSocket updates
+
+## SPECIFIC RULES FOR THIS PROJECT
+
+### Aero System
+- Always extend `AeroCalculations` class
+- Add new calculations as methods, don't replace existing
+- Maintain scenario detection logic
+- Preserve histogram functionality
+- Keep standard deviation calculations
+
+### Telemetry Data
+- Extend telemetry schema, don't remove fields
+- Add new pressure ports if needed (currently 8 ports)
+- Preserve existing field names
+- Maintain timestamp
+
+### Frontend
+- Extend `TracksideTelemetry` class in `app.js`
+- Add new sections to HTML, don't replace
+- Preserve existing UI structure
+- Maintain dark theme and styling
+- Keep WebSocket connection logic
+
+### API Endpoints
+- Add new endpoints, don't modify existing ones
+- Maintain `/api/telemetry` POST contract
+- Preserve `/api/health` and `/api/config`
+- Keep WebSocket `/ws` endpoint structure
+
+## FORBIDDEN ACTIONS
+
+❌ Never delete existing telemetry fields
+❌ Never replace the FastAPI app structure
+❌ Never hardcode values (ports, rates, thresholds)
+❌ Never remove configuration options
+❌ Never break WebSocket real-time updates
+❌ Never remove aero calculation functionality
+❌ Never replace the frontend UI structure
+❌ Never delete data logging functionality
+
+## REQUIRED ACTIONS
+
+✅ Always extend existing classes and functions
+✅ Always add configuration for new features
+✅ Always preserve existing API contracts
+✅ Always maintain backwards compatibility
+✅ Always test existing functionality after changes
+✅ Always document new configuration options
+✅ Always use existing patterns and conventions
+✅ Always consider trackside production use
+
+## EXAMPLE: Adding a New Feature
+
+If adding a new telemetry metric:
+
+1. **Extend Schema** (don't replace):
+   - Add field to `settings.get_initial_telemetry_data()`
+   - Update `config/telemetry_schema.example.json`
+
+2. **Extend Backend** (additive):
+   - Add field processing in `update_telemetry()` endpoint
+   - No changes to existing field handling
+
+3. **Extend Frontend** (additive):
+   - Add new metric card to HTML template
+   - Add update logic to `updateDisplay()` method
+   - Add CSS for new metric card
+
+4. **Extend Config** (additive):
+   - Add any new thresholds/settings to `settings.py`
+   - Update `config.example.env`
+   - Document in `CONFIGURATION.md`
+
+5. **Test**:
+   - Verify existing metrics still work
+   - Test new metric displays correctly
+   - Check WebSocket updates include new field
+
+## TRACK-READY REQUIREMENTS
+
+All changes must maintain:
+- Real-time performance (10Hz+ update rate)
+- Stability (no crashes, graceful error handling)
+- Data integrity (logging, session management)
+- Configuration flexibility (all settings adjustable)
+- Production readiness (error handling, logging, monitoring)
+
+## SPECIFIC PATTERNS FOR THIS CODEBASE
+
+### Adding New Aero Calculations
+```python
+# In backend/internal/aero/calculations.py
+# Add new method to AeroCalculations class
+def calculate_new_metric(self, ...):
+    """New calculation"""
+    # Use existing reference ports from config
+    # Return calculated value
+    pass
+```
+
+### Adding New Telemetry Field
+1. Add to `settings.get_initial_telemetry_data()` with default value
+2. Field will auto-update via `update_telemetry()` endpoint
+3. Add display in `frontend/templates/index.html`
+4. Add update logic in `frontend/static/js/app.js` -> `updateDisplay()`
+
+### Adding New API Endpoint
+```python
+# In backend/main.py
+@app.get("/api/new-endpoint")
+async def new_endpoint():
+    """Description"""
+    # Use settings for any config values
+    # Return JSON response
+    return {"status": "ok"}
+```
+
+### Modifying Histogram Display
+- Update `drawHistogram()` in `app.js`
+- Preserve canvas rendering logic
+- Maintain percentage-based Y-axis
+- Keep configurable range from settings
+
+### Scenario Detection Changes
+- Modify thresholds in `settings.py` (AERO_*_THRESHOLD)
+- Update `detect_scenario()` in `calculations.py` if logic changes
+- Preserve existing scenario names: "straight", "turn_left", "turn_right"
+
+## FILE MODIFICATION GUIDELINES
+
+### Safe to Modify
+- `backend/main.py` - Add endpoints, extend existing handlers
+- `backend/internal/config/settings.py` - Add new config fields
+- `backend/internal/aero/calculations.py` - Add new calculation methods
+- `frontend/templates/index.html` - Add new sections
+- `frontend/static/js/app.js` - Extend TracksideTelemetry class
+- `frontend/static/css/style.css` - Add new styles
+
+### Never Modify Without Careful Review
+- WebSocket connection logic in `app.js`
+- Telemetry data structure initialization
+- Aero calculation core formulas (Cp, Cpt)
+- Configuration loading system
+- Data logging file structure
+
+## QUICK REFERENCE
+
+**Config Location**: `backend/internal/config/settings.py`
+**Aero Calculations**: `backend/internal/aero/calculations.py`
+**Main App**: `backend/main.py`
+**Frontend Logic**: `frontend/static/js/app.js`
+**Frontend Template**: `frontend/templates/index.html`
+**Config Example**: `config.example.env`
+
+## MoTeC UI/UX CONFIGURABILITY REQUIREMENTS
+
+### UI-Driven Configuration
+All MoTeC behavior must be editable from the frontend UI, not just config files:
+
+- **Global Settings**: Enable/disable, NAS paths, file patterns, auto-generation
+- **Car Profiles**: Create, edit, delete via UI forms
+- **Channel Mappings**: Full CRUD via UI tables and modals
+- **LD File Management**: Scan, discover, link sessions via UI buttons
+- **Session Linking**: Visual workflow and status indicators
+
+### Frontend Integration
+- MoTeC UI uses existing vanilla JavaScript patterns (`MotecConfigUI` class)
+- Follows existing CSS styling and dark theme
+- Uses existing modal/table/form patterns
+- Integrates with existing navigation system
+- No new frameworks or design systems
+
+### API Contract
+- All UI actions call backend APIs
+- APIs use same underlying MoTeC services
+- Changes persist to configuration files
+- Real-time status updates via API polling
+
+### UI Components Required
+- Status cards with badges
+- Configuration forms with validation
+- Data tables for cars and channels
+- Modal dialogs for create/edit
+- Toast notifications for feedback
+- File cards for LD file display
+
+## TRACKSIDE RELIABILITY & STRAIGHTFORWARD UI REQUIREMENTS
+
+### Core Principle
+This is a **trackside operations tool** used under time pressure, stress, and potentially limited connectivity.
+
+**Priorities (in order):**
+1. **Straightforward UI** (No confusion)
+2. **Reliability** (App must not crash or corrupt data)
+3. **Accuracy** (MoTeC config + mappings must be correct)
+4. **Speed of use** (Fewest clicks/steps possible)
+
+These priorities **override cosmetic complexity** or fancy visual effects.
+
+### A. Straightforward UI Requirements
+
+**Obvious at a glance:**
+- Use plain language labels (no jargon unless necessary)
+- Short helper text (one sentence, not paragraphs)
+- Clear visual hierarchy
+
+**Minimal but powerful:**
+- Only show what user needs right now
+- Hide advanced options behind "Advanced" sections
+- Avoid overwhelming tables (allow column toggles if needed)
+
+**Fast to operate:**
+- Keyboard-friendly controls
+- Clear primary actions ("Save", "Generate LDX", "Attach LD")
+- Avoid multi-step wizards; prefer single-page control surfaces
+
+**Consistent:**
+- Same button placements across forms
+- Same spacing, typography, inputs as rest of app
+- Same patterns for dialogs, confirmations, errors
+
+**Forbidden:**
+- Experimental UI paradigms
+- Overly complex navigation
+- Unnecessary animations that slow interaction
+
+### B. Trackside Reliability Constraints
+
+**No silent failures:**
+- All failures must be clearly indicated in UI
+- Logged with context
+- Provide next steps ("retry", "check path", etc.)
+
+**No destructive default actions:**
+- Never overwrite `.ldx` without explicit confirmation
+- Batch actions require explicit confirmation with description
+
+**Safe write patterns:**
+- Use temp files (write `*.tmp` then replace) to avoid corruption
+- Validate generated `.ldx` structure before finalizing
+
+**Robust error handling:**
+- Catch exceptions in NAS access, LD/LDX parsing, config operations
+- Never crash entire app; show localized errors
+- Keep rest of UI functional
+
+**Clear status indicators:**
+- Show state: Idle, In Progress, Succeeded (with timestamp), Failed (with reason)
+- Use simple icons: ✅, ⚠️, ❌ with text
+
+### C. Accuracy Requirements
+
+**Validate before committing:**
+- Required channels exist in mappings
+- Units are consistent
+- Paths are valid and writable
+- Block writes if validation fails
+
+**Prevent accidental misconfiguration:**
+- Show old vs new values when changing mappings
+- Warn if commonly-used channel is disabled/renamed
+- Preview before writing `.ldx` for major changes
+
+**Deterministic behavior:**
+- Same inputs → same `.ldx` output
+- Document any auto-inference
+- Avoid "magic" behaviors
+
+### D. Optimized Trackside Flows
+
+**Attach LD file to session:**
+- Select session → see suggested LDs → click to attach
+- Show success/error immediately
+
+**Generate/update LDX:**
+- Button: "Generate LDX" or "Regenerate LDX"
+- Optional preview
+- Confirmation if overwriting
+- Clear success + path to file
+
+**Edit channel mappings:**
+- Table with: Internal Channel, MoTeC Channel, Units, Enabled
+- Inline or row-based edit
+- Bulk save with validation
+
+**System health check:**
+- Compact overview showing:
+  - NAS reachable: Yes/No
+  - LD discovery OK: Yes/No
+  - LDX template present: Yes/No
+  - Config validity: OK/Warnings/Errors
+
+### E. Design Filter
+
+For all MoTeC UI and backend behavior, ask:
+- Is this **straightforward** enough for a tired engineer at the track?
+- Is this **reliable** enough to trust during a live session?
+- Is this **accurate** enough that MoTeC will receive exactly what is intended?
+
+If answer is not firmly "yes" for all three, **refine until it is**.
+
+## NAS AUTO-SCAN → AUTO-POPULATE MoTeC UI
+
+### Core Behavior
+NAS discovery + MoTeC auto-population must be implemented as a **safe, non-blocking, trackside-friendly** core feature.
+
+### A. NAS Discovery & Connection
+
+**Auto-scan for NAS:**
+- Use configured IP ranges, mDNS, known hostnames, or user-configured base path
+- NEVER hardcode assumptions
+- Respect settings: `motec.nasBasePath`, `motec.nasDiscovery.enabled`, `motec.nasDiscovery.scanInterval`
+
+**Non-blocking behavior:**
+- NAS scan must NEVER freeze the UI
+- Use background jobs / server tasks / worker threads
+- UI shows clear status: "Scanning for NAS...", "NAS found at: {path}", "NAS unreachable"
+
+**Configurable & override-able:**
+- User can override auto-detected NAS path via UI
+- User can disable auto-scan
+- Manual path always wins over auto-detection
+
+### B. Reading NAS & Discovering MoTeC Files
+
+**Scan NAS for MoTeC files:**
+- Use configured patterns: `motec.ld.globPattern`, `motec.ldx.globPattern`
+- Discover `.ld` (logged data) and `.ldx` (config/workspace) files
+- Optional: auxiliary files (metadata, JSON/YAML config)
+
+**Associate files with logical entities:**
+- Infer: Session → LD files, Session → LDX config, Car → Subdirectory, Driver → File naming
+- Inferred mapping must be:
+  - **Deterministic** and documented
+  - **Visible to user in UI** (not hidden magic)
+  - **Overridable** when inference is wrong
+
+**Safety & robustness:**
+- Validate files exist & are readable
+- Validate file matches expected pattern
+- On error, mark file as problematic, don't crash scan
+
+### C. Auto-Populating MoTeC UI
+
+**Populate Sessions:**
+- Session name/ID, date/time, car, driver, track
+- Attached LD file(s), mapped LDX file
+- Status: "Ready", "Missing LDX", "Missing LD", "NAS Error"
+
+**Populate LD Files:**
+- Show discovered LD files with suggested session association
+- File size, location/path, age/timestamp
+- One-click attach to session
+- Show when already attached
+
+**Populate LDX Config References:**
+- Show which `.ldx` files exist on NAS
+- LDX path, "Used by" sessions, last modified time
+- Show if LDX is managed by app or external
+
+**Populate Channel-Related Variables:**
+- If LD file includes channel info, suggest: channel names, units, mappings
+- Allow user to accept suggestions or correct mappings
+- All suggestions clearly labeled as suggestions, not auto-applied
+
+### D. Simple UI for Auto-Population
+
+**Clear, minimal lists/tables:**
+- Discovered NAS
+- Discovered LD/LDX files
+- Suggested mappings/links
+
+**Simple actions:**
+- "Connect to this NAS"
+- "Rescan NAS"
+- "Attach LD to Session"
+- "Generate/Update LDX for this Session"
+
+**Clear sections:**
+- "NAS Status"
+- "Discovered LD Files"
+- "Discovered LDX Files"
+- "Session MoTeC Status"
+
+No clutter, no deep nested menus - everything visible in one primary MoTeC pane.
+
+### E. Reliability & Accuracy for Auto-Population
+
+**Never auto-apply high-impact actions silently:**
+- Auto-population fills lists & suggestions
+- Attaching LD to session requires explicit action
+- Overwriting/regenerating `.ldx` requires explicit action
+
+**Make inferences visible & reversible:**
+- Show suggestions with clear labeling: "Suggested: Session X (based on filename YYYYMMDD_X.ld)"
+- Allow user to override with dropdown or manual selection
+
+**Graceful degradation:**
+- If NAS temporarily down, keep previously discovered data in cache
+- Show that it may be stale with timestamp
+- Allow user to retry when NAS is reachable
+
+**Logging & diagnostics:**
+- Log: NAS connection success/failure, scan results, parsing errors
+- Aid debugging without overwhelming user
+
+### F. Configuration Options
+
+All NAS auto-scan and auto-populate behavior must be **configurable**:
+
+- `motec.nasDiscovery.enabled: boolean`
+- `motec.nasDiscovery.scanOnStartup: boolean`
+- `motec.nasDiscovery.scanIntervalMs: number`
+- `motec.autoPopulate.enabled: boolean`
+- `motec.autoPopulate.maxFilesPerScan: number`
+- `motec.autoPopulate.inferenceMode: "conservative" | "aggressive"`
+
+Defaults must be **safe** and favor reliability/predictability over aggressive automation.
+
+### G. Overall Mental Model
+
+- NAS is an external but critical sensor/log storage device
+- MoTeC UI is the **single pane of glass** showing:
+  - What the NAS holds
+  - What's wired to which session
+  - What's ready for MoTeC i2
+- User always knows: **what came from NAS**, **what's inferred**, **what's explicitly confirmed**
+- No auto action silently breaks or misconfigures critical telemetry
+

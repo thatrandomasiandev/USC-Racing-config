@@ -1,0 +1,17 @@
+{
+  "aero": {
+    "reference_dynamic_port": 7,
+    "reference_static_port": 8,
+    "num_ports": 8,
+    "straight_threshold": 0.1,
+    "turn_threshold": 0.3,
+    "lateral_g_threshold": 0.2,
+    "averaging_window_size": 100,
+    "histogram_bins": 20,
+    "histogram_range": [-3.0, 3.0],
+    "histogram_update_interval_ms": 2000
+  },
+  "description": "Aero configuration example. These values can also be set via environment variables with AERO_ prefix."
+}
+
+

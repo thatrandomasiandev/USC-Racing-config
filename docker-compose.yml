@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: usc-racing-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./frontend:/app/frontend
+    restart: unless-stopped
+    networks:
+      - usc-racing-network
+
+networks:
+  usc-racing-network:
+    driver: bridge
+
+volumes:
+  data:
+    driver: local
+
+

@@ -1,0 +1,41 @@
+[package]
+name = "motec-parser"
+version = "0.1.0"
+edition = "2021"
+authors = ["USC Racing"]
+description = "MoTeC i2 file format parser for LDX and LD files"
+license = "MIT"
+
+[lib]
+name = "motec_parser"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["pyo3"]
+
+[dependencies]
+# XML parsing for LDX files
+quick-xml = { version = "0.31", features = ["serialize"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Binary parsing for LD files
+byteorder = "1.4"
+nom = "7.1"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Python bindings (PyO3 for Python integration)
+pyo3 = { version = "0.20", features = ["auto-initialize"] }
+
+[[bin]]
+name = "motec-parser"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+
