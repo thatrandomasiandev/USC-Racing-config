@@ -83,10 +83,17 @@ class Settings:
     MOTEC_AUTO_POPULATE_MAX_FILES_PER_SCAN: int = int(os.getenv("MOTEC_AUTO_POPULATE_MAX_FILES_PER_SCAN", "1000"))
     MOTEC_AUTO_POPULATE_INFERENCE_MODE: str = os.getenv("MOTEC_AUTO_POPULATE_INFERENCE_MODE", "conservative")  # conservative or aggressive
     
-    # Paths
+    # Paths - handle both local and Vercel deployment
     BASE_DIR: Path = Path(__file__).parent.parent.parent
-    TEMPLATES_DIR: Path = BASE_DIR.parent / "frontend" / "templates"
-    STATIC_DIR: Path = BASE_DIR.parent / "frontend" / "static"
+    # Check if we're in Vercel (project root is one level up from backend)
+    if (BASE_DIR.parent / "api").exists():
+        # Vercel structure: project_root/api/index.py, project_root/backend/
+        TEMPLATES_DIR: Path = BASE_DIR.parent / "frontend" / "templates"
+        STATIC_DIR: Path = BASE_DIR.parent / "frontend" / "static"
+    else:
+        # Local structure: backend/internal/config/
+        TEMPLATES_DIR: Path = BASE_DIR.parent / "frontend" / "templates"
+        STATIC_DIR: Path = BASE_DIR.parent / "frontend" / "static"
     
     @classmethod
     def get_aero_config(cls) -> dict:

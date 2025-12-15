@@ -59,10 +59,14 @@ templates_dir = settings.TEMPLATES_DIR
 static_dir = settings.STATIC_DIR
 data_dir = settings.DATA_DIR
 
-# Create directories
-templates_dir.mkdir(parents=True, exist_ok=True)
-static_dir.mkdir(parents=True, exist_ok=True)
-data_dir.mkdir(parents=True, exist_ok=True)
+# Create directories (skip on Vercel - read-only filesystem)
+try:
+    templates_dir.mkdir(parents=True, exist_ok=True)
+    static_dir.mkdir(parents=True, exist_ok=True)
+    data_dir.mkdir(parents=True, exist_ok=True)
+except (PermissionError, OSError):
+    # Vercel has read-only filesystem, directories should already exist
+    pass
 
 templates = Jinja2Templates(directory=str(templates_dir))
 
