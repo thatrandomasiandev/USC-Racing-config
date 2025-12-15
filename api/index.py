@@ -81,13 +81,8 @@ if app is None:
     app = error_app
 
 # Wrap FastAPI app with Mangum for AWS Lambda/Vercel compatibility
-# Vercel expects a callable handler function
+# Export the Mangum adapter directly - it's callable and Vercel should handle it
 from mangum import Mangum
 
-# Create Mangum adapter
-mangum_adapter = Mangum(app, lifespan="off")
-
-# Export as handler - Vercel will call this function
-def handler(event, context):
-    """Vercel serverless function handler"""
-    return mangum_adapter(event, context)
+# Export handler - Mangum adapter is callable and compatible with Vercel
+handler = Mangum(app, lifespan="off")
