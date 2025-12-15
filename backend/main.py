@@ -60,12 +60,17 @@ static_dir = settings.STATIC_DIR
 data_dir = settings.DATA_DIR
 
 # Create directories (skip on Vercel - read-only filesystem)
+# Only create if directories don't exist and we have write permissions
 try:
-    templates_dir.mkdir(parents=True, exist_ok=True)
-    static_dir.mkdir(parents=True, exist_ok=True)
-    data_dir.mkdir(parents=True, exist_ok=True)
-except (PermissionError, OSError):
-    # Vercel has read-only filesystem, directories should already exist
+    if not templates_dir.exists():
+        templates_dir.mkdir(parents=True, exist_ok=True)
+    if not static_dir.exists():
+        static_dir.mkdir(parents=True, exist_ok=True)
+    if not data_dir.exists():
+        data_dir.mkdir(parents=True, exist_ok=True)
+except (PermissionError, OSError, FileNotFoundError):
+    # Vercel has read-only filesystem for most paths
+    # Templates and static should exist in the repo
     pass
 
 templates = Jinja2Templates(directory=str(templates_dir))

@@ -1,119 +1,70 @@
 """
 Vercel serverless function entry point for FastAPI
-Simplified version that handles Vercel's environment
+This file must be in the api/ directory for Vercel to recognize it
 """
 import sys
 import os
 from pathlib import Path
 
-# Get absolute paths
-current_file = Path(__file__).resolve()
-project_root = current_file.parent.parent
-backend_path = project_root / "backend"
+# Vercel's working directory is the project root
+# We need to add backend to the path
+PROJECT_ROOT = Path(__file__).parent.parent
+BACKEND_DIR = PROJECT_ROOT / "backend"
 
-# Debug: Print paths (will show in Vercel logs)
-print(f"Current file: {current_file}")
-print(f"Project root: {project_root}")
-print(f"Backend path: {backend_path}")
-print(f"Backend exists: {backend_path.exists()}")
+# Add backend to Python path
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
-# Add all necessary paths
-paths_to_add = [
-    str(project_root),
-    str(backend_path),
-    str(backend_path / "internal"),
-    str(backend_path / "internal" / "config"),
-    str(backend_path / "internal" / "aero"),
-    str(backend_path / "internal" / "motec"),
-]
-
-for path_str in paths_to_add:
-    path = Path(path_str)
-    if path.exists() and str(path) not in sys.path:
-        sys.path.insert(0, str(path))
-        print(f"Added to path: {path}")
-
-print(f"Python path: {sys.path[:5]}")
+# Add internal modules to path
+INTERNAL_DIR = BACKEND_DIR / "internal"
+if str(INTERNAL_DIR) not in sys.path:
+    sys.path.insert(0, str(INTERNAL_DIR))
 
 # Set environment variables
 os.environ.setdefault("TEL_HOST", "0.0.0.0")
 os.environ.setdefault("TEL_PORT", "8000")
 os.environ.setdefault("TEL_CORS_ORIGINS", "*")
 os.environ.setdefault("TEL_LOG_ENABLED", "false")
+os.environ.setdefault("TEL_DATA_DIR", "/tmp")  # Use /tmp on Vercel (writable)
 
-# Try to import with detailed error reporting
+# Import the FastAPI app
+# This must be a simple import - Vercel handles the rest
 try:
-    print("Attempting to import main...")
-    from main import app
-    print("Successfully imported app!")
+    # Change to backend directory for imports
+    original_cwd = os.getcwd()
+    try:
+        os.chdir(BACKEND_DIR)
+        from main import app
+    finally:
+        os.chdir(original_cwd)
+    
+    # Export handler for Vercel
     handler = app
     
-except ImportError as e:
-    print(f"ImportError: {e}")
-    import traceback
-    traceback.print_exc()
-    
-    # Try alternative import
-    try:
-        print("Trying alternative import path...")
-        sys.path.insert(0, str(backend_path))
-        os.chdir(backend_path)
-        from main import app
-        handler = app
-        print("Alternative import succeeded!")
-    except Exception as e2:
-        print(f"Alternative import also failed: {e2}")
-        traceback.print_exc()
-        
-        # Create minimal error app
-        from fastapi import FastAPI
-        from fastapi.responses import JSONResponse
-        
-        error_app = FastAPI()
-        
-        @error_app.get("/")
-        @error_app.get("/{path:path}")
-        async def error_handler(path: str = ""):
-            import traceback
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "error": "Import failed",
-                    "import_error": str(e),
-                    "alternative_error": str(e2),
-                    "traceback": traceback.format_exc(),
-                    "sys_path": sys.path[:10],
-                    "cwd": os.getcwd(),
-                    "backend_exists": str(backend_path.exists()),
-                    "backend_path": str(backend_path)
-                }
-            )
-        
-        handler = error_app
-        
 except Exception as e:
-    print(f"Unexpected error: {e}")
+    # If import fails, create a minimal error handler
     import traceback
-    traceback.print_exc()
     
     from fastapi import FastAPI
     from fastapi.responses import JSONResponse
     
-    error_app = FastAPI()
+    error_app = FastAPI(title="Error Handler")
     
     @error_app.get("/")
     @error_app.get("/{path:path}")
-    async def error_handler(path: str = ""):
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": "Unexpected error during initialization",
-                "message": str(e),
-                "traceback": traceback.format_exc(),
-                "sys_path": sys.path[:10]
-            }
-        )
+    async def error_route(path: str = ""):
+        error_info = {
+            "error": "Failed to initialize application",
+            "message": str(e),
+            "type": type(e).__name__,
+            "traceback": traceback.format_exc(),
+            "python_path": sys.path[:10],
+            "cwd": os.getcwd(),
+            "project_root": str(PROJECT_ROOT),
+            "backend_dir": str(BACKEND_DIR),
+            "backend_exists": BACKEND_DIR.exists(),
+            "path": path
+        }
+        return JSONResponse(status_code=500, content=error_info)
     
     handler = error_app
-
-print("Handler created successfully")
