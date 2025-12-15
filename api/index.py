@@ -5,33 +5,46 @@ import sys
 import os
 from pathlib import Path
 
-# Add backend directory to Python path
-backend_path = Path(__file__).parent.parent / "backend"
-if str(backend_path) not in sys.path:
-    sys.path.insert(0, str(backend_path))
-
-# Add project root to path for imports
+# Get the project root (parent of api directory)
 project_root = Path(__file__).parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+backend_path = project_root / "backend"
 
-# Set environment variables for Vercel (if not already set)
+# Add paths to sys.path
+paths_to_add = [
+    str(project_root),
+    str(backend_path),
+    str(backend_path / "internal"),
+]
+
+for path in paths_to_add:
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+# Set environment variables for Vercel
 os.environ.setdefault("TEL_HOST", "0.0.0.0")
 os.environ.setdefault("TEL_PORT", "8000")
 os.environ.setdefault("TEL_CORS_ORIGINS", "*")
+os.environ.setdefault("TEL_LOG_ENABLED", "false")  # Disable logging on Vercel
 
-# Change to backend directory for relative imports
-os.chdir(backend_path)
-
+# Import with better error handling
 try:
-    # Import app from backend
-    from main import app
+    # Change to backend directory temporarily for imports
+    original_cwd = os.getcwd()
+    os.chdir(backend_path)
+    
+    try:
+        from main import app
+    finally:
+        os.chdir(original_cwd)
     
     # Export app for Vercel
     handler = app
     
 except Exception as e:
-    # Create a minimal error handler if import fails
+    import traceback
+    error_trace = traceback.format_exc()
+    
+    # Create a minimal error handler
     from fastapi import FastAPI
     from fastapi.responses import JSONResponse
     
@@ -45,7 +58,10 @@ except Exception as e:
             content={
                 "error": "Serverless function initialization failed",
                 "message": str(e),
-                "path": path
+                "traceback": error_trace,
+                "path": path,
+                "sys_path": sys.path[:5],  # First 5 paths
+                "cwd": os.getcwd()
             }
         )
     
