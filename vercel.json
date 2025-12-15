@@ -1,7 +1,5 @@
 {
   "version": 2,
-  "buildCommand": "echo 'No build needed for Python'",
-  "outputDirectory": ".",
   "builds": [
     {
       "src": "api/index.py",
@@ -9,10 +7,6 @@
     }
   ],
   "routes": [
-    {
-      "src": "/test",
-      "dest": "api/test.py"
-    },
     {
       "src": "/api/(.*)",
       "dest": "api/index.py"
@@ -26,9 +20,6 @@
       "dest": "api/index.py"
     }
   ],
-  "env": {
-    "PYTHON_VERSION": "3.11"
-  },
   "functions": {
     "api/index.py": {
       "maxDuration": 30,

@@ -33,7 +33,8 @@ class Settings:
     WS_UPDATE_INTERVAL: float = 1.0 / WS_UPDATE_RATE_HZ
     
     # Data Logging Configuration
-    DATA_DIR: Path = Path(os.getenv("TEL_DATA_DIR", "data"))
+    # Use /tmp on Vercel (writable), otherwise use project data dir
+    DATA_DIR: Path = Path(os.getenv("TEL_DATA_DIR", str(BASE_DIR.parent / "data")))
     LOG_ENABLED: bool = os.getenv("TEL_LOG_ENABLED", "true").lower() == "true"
     LOG_FILE_PREFIX: str = os.getenv("TEL_LOG_PREFIX", "telemetry")
     
