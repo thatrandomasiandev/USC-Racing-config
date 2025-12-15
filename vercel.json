@@ -2,6 +2,10 @@
   "version": 2,
   "routes": [
     {
+      "src": "/test",
+      "dest": "api/test_simple.py"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "api/index.py"
     },
