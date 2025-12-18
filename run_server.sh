@@ -27,9 +27,19 @@ echo "📥 Installing dependencies..."
 cd backend
 pip install -q -r requirements.txt
 
+# Get local IP address
+LOCAL_IP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1)
+
 # Run server
-echo "✅ Starting server on http://localhost:8000"
-echo "📝 API docs available at http://localhost:8000/docs"
+echo "✅ Starting server..."
+echo ""
+echo "🌐 Network Access:"
+echo "   Local:    http://localhost:8000"
+echo "   Network:  http://${LOCAL_IP:-YOUR_IP}:8000"
+echo ""
+echo "📝 API docs: http://${LOCAL_IP:-localhost}:8000/docs"
+echo ""
+echo "💡 Connect from other devices on your network using the Network URL above"
 echo ""
 python main.py
 

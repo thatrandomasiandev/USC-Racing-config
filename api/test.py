@@ -1,19 +1,20 @@
 """
-Simple test function to verify Vercel Python is working
+Minimal test function to debug Vercel deployment
 """
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+import sys
+import os
+from pathlib import Path
 
-app = FastAPI()
-
-@app.get("/")
-@app.get("/{path:path}")
-async def test_handler(path: str = ""):
-    return JSONResponse({
-        "status": "ok",
-        "message": "Vercel Python function is working!",
-        "path": path
-    })
-
-handler = app
-
+def handler(event, context):
+    """Simple test handler"""
+    try:
+        return {
+            "statusCode": 200,
+            "body": "Test function works!"
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "statusCode": 500,
+            "body": f"Error: {str(e)}\n{traceback.format_exc()}"
+        }

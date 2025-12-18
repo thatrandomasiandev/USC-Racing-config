@@ -31,6 +31,11 @@ data/
 *.ldx
 *.log
 
+# Large demo/test files
+20251205_EThrottle/
+*.m1dli
+*.zip
+
 # Build artifacts
 dist/
 build/
@@ -57,3 +62,5 @@ Cargo.lock
 *.bak
 *.cache
 
+.vercel
+.env*.local

@@ -3,546 +3,333 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USC Racing - Trackside Telemetry</title>
+    <title>Parameter Management - USC Racing</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <meta name="user-subteam" content="{{ user_subteam or '' }}">
+    <meta name="user-role" content="{{ role or 'user' }}">
 </head>
 <body>
     <div id="app">
         <header>
             <div class="container">
-                <h1>🏎️ USC Racing - Trackside</h1>
-                <nav class="main-nav">
-                    <a href="#telemetry" class="nav-link active" data-section="telemetry">Telemetry</a>
-                    <a href="#aero" class="nav-link" data-section="aero">Aero</a>
-                    <a href="#motec-dashboard" class="nav-link" data-section="motec-dashboard">MoTeC Dashboard</a>
-                    <a href="#motec" class="nav-link" data-section="motec">MoTeC Config</a>
-                </nav>
-                <div class="status">
-                    <span id="connection-status" class="status-indicator">Connecting...</span>
-                    <span id="update-rate">0 Hz</span>
+                <h1>🏎️ USC Racing - Parameter Management</h1>
+                <div class="header-actions">
+                    <span class="username">Logged in as: <strong>{{ username }}</strong> ({{ role }})</span>
+                    {% if role == "admin" %}
+                    <a href="#users" class="btn-secondary" onclick="showUserManagement()">Manage Users</a>
+                    {% endif %}
+                    <form method="POST" action="/logout" style="display: inline;">
+                        <button type="submit" class="btn-secondary">Logout</button>
+                    </form>
                 </div>
             </div>
         </header>
 
-        <main>
-            <!-- Telemetry Section -->
-            <section id="telemetry" class="section-content">
-            <div class="telemetry-container">
-                <!-- Primary Metrics -->
-                <section class="primary-metrics">
-                    <div class="metric-card large">
-                        <div class="metric-label">Speed</div>
-                        <div class="metric-value" id="speed">0</div>
-                        <div class="metric-unit">mph</div>
+        <main class="container">
+            <!-- Filters -->
+            <section class="filters-section" style="display: none;">
+                <div class="filters">
+                    <div class="form-group">
+                        <label for="filter-subteam">Filter by Subteam</label>
+                        <select id="filter-subteam">
+                            <option value="">All Subteams</option>
+                            {% for subteam in subteams %}
+                            <option value="{{ subteam }}">{{ subteam }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    <div class="metric-card large">
-                        <div class="metric-label">RPM</div>
-                        <div class="metric-value" id="rpm">0</div>
-                        <div class="metric-unit">rpm</div>
+                    <div class="form-group">
+                        <label for="search">Search Parameters</label>
+                        <input type="text" id="search" placeholder="Search by name...">
                     </div>
-                    <div class="metric-card large">
-                        <div class="metric-label">Lap Time</div>
-                        <div class="metric-value" id="lap-time">0:00.000</div>
-                        <div class="lap-time-controls" style="margin-top: 10px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-                            <button id="lap-time-start" class="btn-small btn-primary" style="min-width: 70px;">Start</button>
-                            <button id="lap-time-stop" class="btn-small btn-secondary" style="min-width: 70px;" disabled>Stop</button>
-                            <button id="lap-time-lap" class="btn-small btn-secondary" style="min-width: 70px;" disabled>Lap</button>
-                            <button id="lap-time-reset" class="btn-small btn-secondary" style="min-width: 70px;">Reset</button>
-                        </div>
-                        <div id="lap-times-graph-container" style="margin-top: 15px; display: none;">
-                            <div style="font-size: 0.9rem; margin-bottom: 8px; color: var(--text-dim);">Lap Times History</div>
-                            <canvas id="lap-times-graph" width="400" height="150" style="max-width: 100%; height: auto;"></canvas>
-                            <div id="lap-times-list" style="margin-top: 10px; font-size: 0.85rem; max-height: 100px; overflow-y: auto;"></div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Secondary Metrics Grid -->
-                <section class="secondary-metrics">
-                    <div class="metric-card">
-                        <div class="metric-label">Throttle</div>
-                        <div class="metric-value" id="throttle">0</div>
-                        <div class="metric-unit">%</div>
-                        <div class="metric-bar">
-                            <div class="metric-bar-fill" id="throttle-bar"></div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Brake</div>
-                        <div class="metric-value" id="brake">0</div>
-                        <div class="metric-unit">%</div>
-                        <div class="metric-bar">
-                            <div class="metric-bar-fill" id="brake-bar"></div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Oil Temp</div>
-                        <div class="metric-value" id="oil-temp">0</div>
-                        <div class="metric-unit">°F</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Water Temp</div>
-                        <div class="metric-value" id="water-temp">0</div>
-                        <div class="metric-unit">°F</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Oil Pressure</div>
-                        <div class="metric-value" id="oil-pressure">0</div>
-                        <div class="metric-unit">psi</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Fuel Level</div>
-                        <div class="metric-value" id="fuel-level">0</div>
-                        <div class="metric-unit">%</div>
-                        <div class="metric-bar">
-                            <div class="metric-bar-fill" id="fuel-bar"></div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Lateral G</div>
-                        <div class="metric-value" id="g-lat">0.00</div>
-                        <div class="metric-unit">g</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Longitudinal G</div>
-                        <div class="metric-value" id="g-long">0.00</div>
-                        <div class="metric-unit">g</div>
-                    </div>
-                </section>
-
-                <!-- Lap Info -->
-                <section class="lap-info">
-                    <div class="info-card">
-                        <div class="info-label">Lap Number</div>
-                        <div class="info-value" id="lap-number">0</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Sector Time</div>
-                        <div class="info-value" id="sector-time">0:00.000</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Position</div>
-                        <div class="info-value" id="position">0</div>
-                    </div>
-                </section>
-            </div>
-            </section>
-
-            <!-- Aero Section -->
-            <section id="aero" class="section-content" style="display: none;">
-                <div class="telemetry-container">
-                <section class="aero-section">
-                    <h2>Aerodynamics</h2>
-                    <div class="aero-scenario">
-                        <div class="scenario-indicator" id="aero-scenario">Straight</div>
-                        <button id="reset-aero-btn" class="btn-secondary">Reset Averages</button>
-                    </div>
-                    
-                    <!-- Pressure Ports -->
-                    <div class="pressure-ports">
-                        <h3>Pressure Ports</h3>
-                        <div class="ports-grid">
-                            <div class="port-card" data-port="1">
-                                <div class="port-label">Port 1</div>
-                                <div class="port-value" id="pressure-port-1">0.00</div>
-                                <div class="port-unit">psi</div>
-                            </div>
-                            <div class="port-card" data-port="2">
-                                <div class="port-label">Port 2</div>
-                                <div class="port-value" id="pressure-port-2">0.00</div>
-                                <div class="port-unit">psi</div>
-                            </div>
-                            <div class="port-card" data-port="3">
-                                <div class="port-label">Port 3</div>
-                                <div class="port-value" id="pressure-port-3">0.00</div>
-                                <div class="port-unit">psi</div>
-                            </div>
-                            <div class="port-card" data-port="4">
-                                <div class="port-label">Port 4</div>
-                                <div class="port-value" id="pressure-port-4">0.00</div>
-                                <div class="port-unit">psi</div>
-                            </div>
-                            <div class="port-card" data-port="5">
-                                <div class="port-label">Port 5</div>
-                                <div class="port-value" id="pressure-port-5">0.00</div>
-                                <div class="port-unit">psi</div>
-                            </div>
-                            <div class="port-card" data-port="6">
-                                <div class="port-label">Port 6</div>
-                                <div class="port-value" id="pressure-port-6">0.00</div>
-                                <div class="port-unit">psi</div>
-                            </div>
-                            <div class="port-card reference" data-port="7">
-                                <div class="port-label">Port 7 (Dynamic)</div>
-                                <div class="port-value" id="pressure-port-7">0.00</div>
-                                <div class="port-unit">psi</div>
-                            </div>
-                            <div class="port-card reference" data-port="8">
-                                <div class="port-label">Port 8 (Static)</div>
-                                <div class="port-value" id="pressure-port-8">0.00</div>
-                                <div class="port-unit">psi</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Coefficients -->
-                    <div class="coefficients">
-                        <h3>Coefficient of Pressure (Cp)</h3>
-                        <div class="coeff-grid">
-                            <div class="coeff-card" data-port="1">
-                                <div class="coeff-label">Port 1 Cp</div>
-                                <div class="coeff-value" id="cp-port-1">0.000</div>
-                            </div>
-                            <div class="coeff-card" data-port="2">
-                                <div class="coeff-label">Port 2 Cp</div>
-                                <div class="coeff-value" id="cp-port-2">0.000</div>
-                            </div>
-                            <div class="coeff-card" data-port="3">
-                                <div class="coeff-label">Port 3 Cp</div>
-                                <div class="coeff-value" id="cp-port-3">0.000</div>
-                            </div>
-                            <div class="coeff-card" data-port="4">
-                                <div class="coeff-label">Port 4 Cp</div>
-                                <div class="coeff-value" id="cp-port-4">0.000</div>
-                            </div>
-                            <div class="coeff-card" data-port="5">
-                                <div class="coeff-label">Port 5 Cp</div>
-                                <div class="coeff-value" id="cp-port-5">0.000</div>
-                            </div>
-                            <div class="coeff-card" data-port="6">
-                                <div class="coeff-label">Port 6 Cp</div>
-                                <div class="coeff-value" id="cp-port-6">0.000</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Scenario Averages -->
-                    <div class="scenario-averages">
-                        <h3>Scenario Averages & Statistics</h3>
-                        <div class="scenarios-grid">
-                            <div class="scenario-card" id="avg-straight">
-                                <div class="scenario-title">Straight</div>
-                                <div class="scenario-averages-list" id="avg-straight-list">No data</div>
-                            </div>
-                            <div class="scenario-card" id="avg-turn-left">
-                                <div class="scenario-title">Turn Left</div>
-                                <div class="scenario-averages-list" id="avg-turn-left-list">No data</div>
-                            </div>
-                            <div class="scenario-card" id="avg-turn-right">
-                                <div class="scenario-title">Turn Right</div>
-                                <div class="scenario-averages-list" id="avg-turn-right-list">No data</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Histograms -->
-                    <div class="histograms-section">
-                        <h3>Cp Histograms</h3>
-                        <div class="histogram-scenario-selector">
-                            <button class="hist-scenario-btn active" data-scenario="straight">Straight</button>
-                            <button class="hist-scenario-btn" data-scenario="turn_left">Turn Left</button>
-                            <button class="hist-scenario-btn" data-scenario="turn_right">Turn Right</button>
-                        </div>
-                        <div class="histograms-grid" id="histograms-container">
-                            <!-- Histograms will be rendered here -->
-                        </div>
-                    </div>
-                </section>
                 </div>
             </section>
 
-            <!-- MoTeC Dashboard Section -->
-            <section id="motec-dashboard" class="section-content" style="display: none;">
-                <div class="container">
-                    <h2>MoTeC Dashboard</h2>
-                    
-                    <!-- Dashboard Controls -->
-                    <div class="motec-config-card" style="margin-bottom: 20px;">
-                        <div class="card-header">
-                            <h3>Dashboard Configuration</h3>
-                            <div class="action-bar">
-                                <button id="configure-dashboard-btn" class="btn-secondary">Configure Display</button>
-                                <button id="save-dashboard-config-btn" class="btn-primary" style="display: none;">Save Config</button>
-                            </div>
+            <!-- Queue Section (Admin Only) -->
+            {% if role == "admin" and queue_items %}
+            <section class="queue-section">
+                <h2>Queue (Pending Changes)</h2>
+                <div class="table-container">
+                    <table id="queue-table" class="parameters-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Subteam</th>
+                                <th>Current → New</th>
+                                <th>Submitted By</th>
+                                <th>Comment</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="queue-tbody">
+                            {% for item in queue_items %}
+                            <tr data-form-id="{{ item.form_id }}">
+                                <td><strong>{{ item.parameter_name }}</strong></td>
+                                <td>{{ item.subteam }}</td>
+                                <td>
+                                    <span class="value-change old">{{ item.current_value or "N/A" }}</span>
+                                    →
+                                    <span class="value-change new">{{ item.new_value }}</span>
+                                </td>
+                                <td>{{ item.submitted_by }}</td>
+                                <td>{{ item.comment or "-" }}</td>
+                                <td>{{ item.submitted_at[:19] if item.submitted_at|length > 19 else item.submitted_at }}</td>
+                                <td>
+                                    <button class="btn-small btn-primary" onclick="processQueueItem('{{ item.form_id }}')">Approve</button>
+                                    <button class="btn-small btn-secondary" onclick="rejectQueueItem('{{ item.form_id }}')">Reject</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- Parameters Table -->
+            <section class="parameters-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 style="margin: 0;">All Parameters</h2>
+                    <button class="btn-small btn-secondary" onclick="initializeCarParameters()" style="margin-left: 1rem;">
+                        Initialize Car Parameters
+                    </button>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <span style="color: var(--text-dim); font-size: 0.9rem;">
+                        💡 Car parameters (tire pressure, etc.) are tracked across sessions to analyze performance
+                    </span>
+                </div>
+                
+                <!-- Subteam Tabs -->
+                <div class="subteam-tabs" id="subteam-tabs">
+                    {% if role == "admin" %}
+                    <button class="tab-button active" data-subteam="" onclick="switchSubteamTab('')">
+                        All
+                    </button>
+                    <button class="tab-button" data-subteam="Suspension" onclick="switchSubteamTab('Suspension')">
+                        Suspension
+                    </button>
+                    <button class="tab-button" data-subteam="Powertrain" onclick="switchSubteamTab('Powertrain')">
+                        Powertrain
+                    </button>
+                    <button class="tab-button" data-subteam="Ergo" onclick="switchSubteamTab('Ergo')">
+                        Ergo
+                    </button>
+                    <button class="tab-button" data-subteam="DAQ" onclick="switchSubteamTab('DAQ')">
+                        DAQ
+                    </button>
+                    <button class="tab-button" data-subteam="Aero" onclick="switchSubteamTab('Aero')">
+                        Aero
+                    </button>
+                    <button class="tab-button" data-subteam="Mechanical" onclick="switchSubteamTab('Mechanical')">
+                        Mechanical
+                    </button>
+                    <button class="tab-button" data-subteam="MoTeC" onclick="switchSubteamTab('MoTeC')">
+                        MoTeC
+                    </button>
+                    {% else %}
+                        {% if user_subteam %}
+                        <button class="tab-button active" data-subteam="{{ user_subteam }}" onclick="switchSubteamTab('{{ user_subteam }}')">
+                            {{ user_subteam }}
+                        </button>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                
+                <!-- Subteam View Summary (shown when a specific subteam is selected) -->
+                <div id="subteam-view-summary" class="subteam-view-summary" style="display: none;">
+                    <div class="subteam-stats">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Parameters</div>
+                            <div class="stat-value" id="subteam-total-params">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Categories</div>
+                            <div class="stat-value" id="subteam-categories">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Recently Updated</div>
+                            <div class="stat-value" id="subteam-recent-updates">-</div>
                         </div>
                     </div>
-
-                    <!-- MoTeC Display Area -->
-                    <div id="motec-display-container" class="motec-display-container">
-                        <div class="motec-display" id="motec-display-main"></div>
-                    </div>
-
-                    <!-- Channel Values Grid -->
-                    <div id="channel-values-grid" class="channel-values-grid" style="display: grid;"></div>
+                </div>
+                
+                <!-- Category Dropdown -->
+                <div class="category-filter" id="category-filter" style="display: none; margin-bottom: 1rem;">
+                    <label for="category-select" style="margin-right: 0.5rem; color: var(--text-light);">Category:</label>
+                    <select id="category-select" class="category-select" onchange="switchCategory(this.value)">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                
+                <div class="table-container">
+                    <table id="parameters-table" class="parameters-table">
+                        <thead>
+                            <tr>
+                                <th>Display Name</th>
+                                <th>Subteam</th>
+                                <th>Current Value</th>
+                                <th>Unit</th>
+                                <th>Last Updated</th>
+                                <th>Updated By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="parameters-tbody">
+                            {% for param in parameters %}
+                            <tr data-parameter="{{ param.parameter_name }}" data-subteam="{{ param.subteam }}">
+                                <td>
+                                    <strong id="display-{{ param.parameter_name }}">{{ param.parameter_name }}</strong>
+                                    <div class="parameter-details">
+                                        <span class="parameter-details-toggle" onclick="toggleParameterDetails(this)">Show ID</span>
+                                        <div class="parameter-details-content">{{ param.parameter_name }}</div>
+                                    </div>
+                                </td>
+                                <td>{{ param.subteam }}</td>
+                                <td><strong>{{ param.current_value }}</strong></td>
+                                <td id="unit-{{ param.parameter_name }}">-</td>
+                                <td>{{ param.updated_at[:19] if param.updated_at|length > 19 else param.updated_at }}</td>
+                                <td>{{ param.updated_by }}</td>
+                                <td>
+                                    <button class="btn-small btn-secondary" onclick="showHistory('{{ param.parameter_name }}')">
+                                        History
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </section>
 
-            <!-- MoTeC Control Panel Section -->
-            <section id="motec" class="section-content" style="display: none;">
-                <div class="container">
-                    <h2>MoTeC Configuration</h2>
-                    
-                    <!-- MoTeC Status -->
-                    <div class="motec-status-card">
-                        <div class="status-header">
-                            <h3>Integration Status</h3>
-                            <div id="motec-status-badge" class="status-badge">Loading...</div>
-                        </div>
-                        <div id="motec-status-details" class="status-details"></div>
-                    </div>
-                    
-                    <!-- NAS Status -->
-                    <div class="motec-status-card">
-                        <div class="status-header">
-                            <h3>NAS Status</h3>
-                            <button id="rescan-nas-btn" class="btn-secondary btn-small">Rescan</button>
-                        </div>
-                        <div id="nas-status-display" class="status-details"></div>
-                    </div>
+            <!-- Sessions Section -->
+            <section class="parameters-section" id="sessions-section" style="margin-top: 2rem; display: none;">
+                <h2>Session History</h2>
+                <div style="margin-bottom: 1rem; color: var(--text-dim); font-size: 0.9rem;">
+                    Uploaded sessions with parameter snapshots and performance data
+                </div>
+                <div class="table-container">
+                    <table id="sessions-table" class="parameters-table">
+                        <thead>
+                            <tr>
+                                <th>Session</th>
+                                <th>File</th>
+                                <th>Uploaded</th>
+                                <th>Performance</th>
+                                <th>Parameters Captured</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sessions-tbody">
+                            <tr><td colspan="6" style="text-align: center; color: var(--text-dim);">Loading sessions...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-                    <!-- Global Settings -->
-                    <div class="motec-config-card">
-                        <h3>Global Settings</h3>
-                        <form id="motec-global-form" class="config-form">
-                            <div class="form-group">
-                                <label>
-                                    <input type="checkbox" id="motec-enabled" name="enabled">
-                                    Enable MoTeC Integration
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label for="motec-nas-path">NAS Base Path</label>
-                                <input type="text" id="motec-nas-path" name="nas_base_path" 
-                                       placeholder="/mnt/nas/motec">
-                                <small>Optional: Network storage path for MoTeC files</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="motec-ld-pattern">LD File Pattern</label>
-                                <input type="text" id="motec-ld-pattern" name="ld_glob_pattern" 
-                                       value="*.ld" placeholder="*.ld">
-                            </div>
-                            <div class="form-group">
-                                <label>
-                                    <input type="checkbox" id="motec-auto-ldx" name="auto_generate_ldx">
-                                    Auto-generate LDX on new session
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label for="motec-overwrite-policy">Overwrite Policy</label>
-                                <select id="motec-overwrite-policy" name="overwrite_policy">
-                                    <option value="never">Never</option>
-                                    <option value="ifSafe" selected>If Safe</option>
-                                    <option value="always">Always</option>
-                                </select>
-                            </div>
-                            <button type="submit" class="btn-primary">Save Settings</button>
-                        </form>
-                    </div>
+            <!-- MoTeC Files Section -->
+            <section id="motec-files" style="margin-top: 2rem;">
+                <h2>MoTeC Files</h2>
+                <div style="margin-bottom: 1rem;">
+                    <form id="motec-upload-form" enctype="multipart/form-data" style="display: flex; gap: 1rem; align-items: end;">
+                        <div style="flex: 1;">
+                            <label for="motec-file-input" style="display: block; margin-bottom: 0.5rem;">Upload .ldx or .ld file:</label>
+                            <input type="file" id="motec-file-input" accept=".ldx,.ld" required style="width: 100%; padding: 0.5rem;">
+                        </div>
+                        <button type="submit" class="btn-primary">Upload</button>
+                    </form>
+                </div>
+                <div class="table-container">
+                    <table class="parameters-table">
+                        <thead>
+                            <tr>
+                                <th>Filename</th>
+                                <th>Type</th>
+                                <th>Size</th>
+                                <th>Uploaded</th>
+                                <th>Details</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="motec-files-tbody">
+                            <tr><td colspan="6" style="text-align: center; color: var(--text-dim);">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
-                    <!-- Car Profiles -->
-                    <div class="motec-config-card">
-                        <div class="card-header">
-                            <h3>Car Profiles</h3>
-                            <div style="display: flex; gap: 10px;">
-                                <button id="add-car-btn" class="btn-secondary">Add Car</button>
-                                <button id="sync-car-to-ldx-btn" class="btn-primary" title="Sync car profile to LDX file">
-                                    Sync to LDX
-                                </button>
-                            </div>
-                        </div>
-                        <p style="color: var(--text-dim); font-size: 0.9rem; margin: 10px 0;">
-                            Configure car profiles. Car name, class, and settings sync to LDX files when you click "Sync to LDX" or auto-generate LDX.
-                        </p>
-                        <div id="cars-table-container" class="table-container">
-                            <table id="cars-table" class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Car ID</th>
-                                        <th>Name</th>
-                                        <th>Class</th>
-                                        <th>Channels</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="cars-table-body">
-                                    <tr><td colspan="5">Loading...</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- Channel Mappings -->
-                    <div class="motec-config-card">
-                        <div class="card-header">
-                            <h3>Channel Mappings</h3>
-                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                                <select id="motec-car-select" class="car-select">
-                                    <option value="">Select a car...</option>
-                                </select>
-                                <button id="add-channel-btn" class="btn-secondary">Add Mapping</button>
-                                <button id="sync-channels-to-ldx-btn" class="btn-primary" title="Sync channel mappings to LDX file">
-                                    Sync to LDX
-                                </button>
-                            </div>
-                        </div>
-                        <p style="color: var(--text-dim); font-size: 0.9rem; margin: 10px 0;">
-                            Configure channel mappings for MoTeC. Changes sync to LDX files when you click "Sync to LDX" or when auto-generating LDX.
-                        </p>
-                        <div id="channels-table-container" class="table-container">
-                            <table id="channels-table" class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Internal Name</th>
-                                        <th>MoTeC Name</th>
-                                        <th>Units</th>
-                                        <th>Source</th>
-                                        <th>Enabled</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="channels-table-body">
-                                    <tr><td colspan="6">Select a car to view mappings</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- LD Files & Sessions -->
-                    <div class="motec-config-card">
-                        <h3>LD Files & Sessions</h3>
-                        <div class="action-bar">
-                            <button id="scan-ld-files-btn" class="btn-secondary">Scan for LD Files</button>
-                            <button id="discover-sessions-btn" class="btn-secondary">Discover Sessions</button>
-                        </div>
-                        <div id="ld-files-container" class="files-container"></div>
-                    </div>
-
-                    <!-- File Selection for Dashboard -->
-                    <div class="motec-config-card">
-                        <h3>Select Files for Dashboard</h3>
-                        <p style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 15px;">
-                            Select LDX/LD files to display on the MoTeC Dashboard
-                        </p>
-                        <div class="action-bar">
-                            <button id="scan-all-files-btn" class="btn-secondary">Scan NAS for Files</button>
-                            <button id="load-selected-to-dashboard-btn" class="btn-primary" style="display: none;">
-                                Load Selected to Dashboard
-                            </button>
-                        </div>
-                        <div id="file-selection-container" class="files-container" style="margin-top: 15px;">
-                            <p style="color: var(--text-dim);">Click "Scan NAS for Files" to discover LDX and LD files</p>
-                        </div>
-                    </div>
-
-                    <!-- Recommendations -->
-                    <div class="motec-config-card">
-                        <div class="card-header">
-                            <h3>AI Recommendations</h3>
-                            <div class="action-bar">
-                                <select id="recommendations-car-select" class="car-select" style="margin-right: 10px;">
-                                    <option value="">Select car...</option>
-                                </select>
-                                <button id="analyze-recommendations-btn" class="btn-secondary">Analyze Files</button>
-                                <button id="apply-recommendations-btn" class="btn-primary" style="display: none;">Apply Recommendations</button>
-                            </div>
-                        </div>
-                        <div id="recommendations-container" style="display: none;">
-                            <div id="recommendations-content"></div>
-                        </div>
-                    </div>
-
-                    <!-- LDX Files Viewer/Editor -->
-                    <div class="motec-config-card">
-                        <div class="card-header">
-                            <h3>LDX Files</h3>
-                            <div class="action-bar">
-                                <input type="text" id="ldx-file-path-input" placeholder="Path to LDX file" 
-                                       class="file-path-input" style="flex: 1; margin-right: 10px;">
-                                <button id="load-ldx-btn" class="btn-secondary">Load LDX</button>
-                                <button id="scan-ldx-files-btn" class="btn-secondary">Scan for LDX Files</button>
-                            </div>
+            <!-- Edit Parameter Modal -->
+            <div id="edit-parameter-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close" onclick="closeEditParameter()">&times;</span>
+                    <h2>Edit Parameter</h2>
+                    <form id="edit-parameter-form" class="parameter-form">
+                        <input type="hidden" id="edit-parameter-name" name="parameter_name">
+                        <input type="hidden" id="edit-subteam" name="subteam">
+                        
+                        <div class="form-group">
+                            <label for="edit-display-name">Parameter</label>
+                            <input type="text" id="edit-display-name" readonly 
+                                   style="background: var(--dark-bg); color: var(--text-dim); cursor: not-allowed;">
                         </div>
                         
-                        <!-- LDX File Display -->
-                        <div id="ldx-display-container" style="display: none;">
-                            <div class="ldx-header">
-                                <div class="ldx-info">
-                                    <h4 id="ldx-workspace-name">Workspace: -</h4>
-                                    <div class="ldx-meta">
-                                        <span>Project: <span id="ldx-project-name">-</span></span>
-                                        <span>Car: <span id="ldx-car-name">-</span></span>
-                                        <span>Modified: <span id="ldx-modified-time">-</span></span>
-                                    </div>
-                                </div>
-                                <div class="ldx-actions">
-                                    <button id="save-ldx-btn" class="btn-primary">Save Changes</button>
-                                    <button id="reload-ldx-btn" class="btn-secondary">Reload</button>
-                                </div>
-                            </div>
-
-                            <!-- Channels Section -->
-                            <div class="ldx-section">
-                                <h4>Channels</h4>
-                                <div class="table-container">
-                                    <table id="ldx-channels-table" class="data-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Name</th>
-                                                <th>Units</th>
-                                                <th>Source</th>
-                                                <th>Scaling</th>
-                                                <th>Math Expression</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="ldx-channels-tbody">
-                                            <tr><td colspan="6">No channels</td></tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <button id="add-ldx-channel-btn" class="btn-secondary btn-small" style="margin-top: 10px;">Add Channel</button>
-                            </div>
-
-                            <!-- Worksheets Section -->
-                            <div class="ldx-section">
-                                <h4>Worksheets</h4>
-                                <div id="ldx-worksheets-container">
-                                    <p>No worksheets configured</p>
-                                </div>
-                            </div>
-
-                            <!-- Metadata Section -->
-                            <div class="ldx-section">
-                                <h4>Metadata</h4>
-                                <div id="ldx-metadata-container" class="metadata-grid">
-                                    <!-- Metadata will be displayed here -->
-                                </div>
-                            </div>
+                        <div class="form-group">
+                            <label for="edit-current-value">Current Value</label>
+                            <input type="text" id="edit-current-value" readonly 
+                                   style="background: var(--dark-bg); color: var(--text-dim); cursor: not-allowed;">
                         </div>
-
-                        <!-- LDX Files List -->
-                        <div id="ldx-files-list-container" class="files-container" style="display: none;">
-                            <!-- Discovered LDX files will be listed here -->
+                        
+                        <div class="form-group">
+                            <label for="edit-new-value">New Value <span id="edit-value-range" style="color: var(--text-dim); font-size: 0.85em;"></span></label>
+                            <input type="text" id="edit-new-value" name="new_value" required>
+                            <small id="edit-value-unit" style="color: var(--text-dim);"></small>
                         </div>
-                    </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-comment">Comment (Optional)</label>
+                            <input type="text" id="edit-comment" name="comment" 
+                                   placeholder="Brief comment about this change">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="edit-queue" name="queue">
+                                Add to queue (requires admin approval)
+                            </label>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem;">
+                            <button type="submit" class="btn-primary">Update Parameter</button>
+                            <button type="button" class="btn-secondary" onclick="closeEditParameter()">Cancel</button>
+                        </div>
+                    </form>
+                    <div id="edit-parameter-message" class="message" style="margin-top: 1rem;"></div>
                 </div>
-            </section>
+            </div>
+
+            <!-- History Modal -->
+            <div id="history-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close" onclick="closeHistory()">&times;</span>
+                    <h2>Parameter History: <span id="history-parameter-name"></span></h2>
+                    <div id="history-content" class="history-content"></div>
+                </div>
+            </div>
+
+            <!-- User Management Modal (Admin Only) -->
+            {% if role == "admin" %}
+            <div id="users-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close" onclick="closeUserManagement()">&times;</span>
+                    <h2>User Management</h2>
+                    <div id="users-content" class="users-content"></div>
+                </div>
+            </div>
+            {% endif %}
         </main>
     </div>
 
-    <!-- Modals -->
-    <div id="motec-modal-overlay" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-title">Modal Title</h3>
-                <button class="modal-close" id="modal-close-btn">&times;</button>
-            </div>
-            <div id="modal-body" class="modal-body"></div>
-        </div>
-    </div>
-
-    <script src="/static/js/app.js"></script>
-    <script src="/static/js/motec.js"></script>
-    <script src="/static/js/motec-dashboard.js"></script>
+    <script src="/static/js/app.js?v=2"></script>
 </body>
 </html>
