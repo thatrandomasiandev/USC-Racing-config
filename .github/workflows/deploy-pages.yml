@@ -1,0 +1,150 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install jinja2
+
+      - name: Build static site
+        run: |
+          mkdir -p _site
+          
+          # Copy static assets
+          cp -r frontend/static _site/static
+          
+          # Create a simple landing page with instructions
+          cat > _site/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>USC Racing Parameter Management</title>
+              <link rel="stylesheet" href="/static/css/style.css">
+              <style>
+                  body {
+                      font-family: 'Courier New', monospace;
+                      background: #0a0a0a;
+                      color: #ffffff;
+                      padding: 2rem;
+                      max-width: 800px;
+                      margin: 0 auto;
+                  }
+                  .info-box {
+                      background: #1a1a1a;
+                      border: 2px solid #990000;
+                      border-radius: 8px;
+                      padding: 2rem;
+                      margin: 2rem 0;
+                  }
+                  .info-box h1 {
+                      color: #990000;
+                      margin-top: 0;
+                  }
+                  .info-box p {
+                      line-height: 1.6;
+                      color: #aaaaaa;
+                  }
+                  .code-block {
+                      background: #000000;
+                      border: 1px solid #333333;
+                      border-radius: 4px;
+                      padding: 1rem;
+                      margin: 1rem 0;
+                      font-family: monospace;
+                      overflow-x: auto;
+                  }
+                  .button {
+                      display: inline-block;
+                      padding: 0.75rem 1.5rem;
+                      background: #990000;
+                      color: #ffffff;
+                      text-decoration: none;
+                      border-radius: 4px;
+                      margin-top: 1rem;
+                      font-weight: 600;
+                  }
+                  .button:hover {
+                      background: #aa0000;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="info-box">
+                  <h1>🏎️ USC Racing Parameter Management</h1>
+                  <p>This application requires a running backend server. GitHub Pages can only serve static files.</p>
+                  
+                  <h2>🚀 Quick Start</h2>
+                  <p>To run the full application locally:</p>
+                  <div class="code-block">
+                      # Install dependencies<br>
+                      cd backend<br>
+                      pip install -r requirements.txt<br><br>
+                      
+                      # Run server<br>
+                      python main.py<br><br>
+                      
+                      # Access at http://localhost:8000
+                  </div>
+                  
+                  <h2>🌐 Deploy Backend</h2>
+                  <p>The backend can be deployed to:</p>
+                  <ul>
+                      <li>VPS (DigitalOcean, AWS EC2, etc.)</li>
+                      <li>Railway.app</li>
+                      <li>Render.com</li>
+                      <li>Fly.io</li>
+                      <li>Heroku</li>
+                  </ul>
+                  
+                  <h2>📚 Documentation</h2>
+                  <p>See the README.md file for detailed setup instructions.</p>
+                  
+                  <a href="https://github.com/thatrandomasiandev/USC-Racing-config" class="button">View on GitHub</a>
+              </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
