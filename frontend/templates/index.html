@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parameter Management - USC Racing</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <meta name="user-subteam" content="{{ user_subteam or '' }}">
+    <meta name="user-role" content="{{ role or 'user' }}">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <!-- Title Bar - Microsoft Word style -->
+            <div class="title-bar">
+                <h1>USC Racing - Parameter Management</h1>
+                <div class="user-info">
+                    <span>{{ username }}</span> <span style="opacity: 0.7;">({{ role }})</span>
+                </div>
+            </div>
+            
+            <!-- Quick Access Toolbar -->
+            <div class="quick-access">
+                {% if role == "admin" %}
+                <button class="quick-access-btn" onclick="showUserManagement()" title="Manage Users">👥</button>
+                {% endif %}
+                <form method="POST" action="/logout" style="display: inline; margin-left: auto;">
+                    <button type="submit" class="quick-access-btn" title="Logout">🚪</button>
+                </form>
+            </div>
+            
+            <!-- Ribbon Tabs -->
+            <div class="ribbon-tabs">
+                <div class="ribbon-tab active" data-tab="home">
+                    <span>🏠</span>
+                    <span>Home</span>
+                </div>
+                <div class="ribbon-tab" data-tab="parameters">
+                    <span>📊</span>
+                    <span>Parameters</span>
+                </div>
+                <div class="ribbon-tab" data-tab="files">
+                    <span>📁</span>
+                    <span>Files</span>
+                </div>
+            </div>
+            
+            <!-- Ribbon Content -->
+            <div class="ribbon-content" id="ribbon-content">
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">View</div>
+                    <div class="ribbon-buttons">
+                        <button class="ribbon-button">All Parameters</button>
+                    </div>
+                </div>
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">Actions</div>
+                    <div class="ribbon-buttons">
+                        <button class="ribbon-button" onclick="document.getElementById('init-btn')?.click()">Initialize</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container">
+            <!-- Filters -->
+            <section class="filters-section" style="display: none;">
+                <div class="filters">
+                    <div class="form-group">
+                        <label for="filter-subteam">Filter by Subteam</label>
+                        <select id="filter-subteam">
+                            <option value="">All Subteams</option>
+                            {% for subteam in subteams %}
+                            <option value="{{ subteam }}">{{ subteam }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="search">Search Parameters</label>
+                        <input type="text" id="search" placeholder="Search by name...">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Queue Section (Admin Only) -->
+            {% if role == "admin" and queue_items %}
+            <section id="queue-section" class="queue-section parameters-section">
+                <h2>Queue (Pending Changes)</h2>
+                <div class="table-container">
+                    <table id="queue-table" class="parameters-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Subteam</th>
+                                <th>Current → New</th>
+                                <th>Submitted By</th>
+                                <th>Comment</th>
+                                <th>Submitted</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="queue-tbody">
+                            {% for item in queue_items %}
+                            <tr data-form-id="{{ item.form_id }}">
+                                <td><strong>{{ item.parameter_name }}</strong></td>
+                                <td>{{ item.subteam }}</td>
+                                <td>
+                                    <span class="value-change old">{{ item.current_value or "N/A" }}</span>
+                                    →
+                                    <span class="value-change new">{{ item.new_value }}</span>
+                                </td>
+                                <td>{{ item.submitted_by }}</td>
+                                <td>{{ item.comment or "-" }}</td>
+                                <td>{{ item.submitted_at[:19] if item.submitted_at|length > 19 else item.submitted_at }}</td>
+                                <td>
+                                    <button class="btn-small btn-primary" onclick="processQueueItem('{{ item.form_id }}')">Approve</button>
+                                    <button class="btn-small btn-secondary" onclick="rejectQueueItem('{{ item.form_id }}')">Reject</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            {% endif %}
+
+            <!-- Parameters Table -->
+            <section id="parameters-section" class="parameters-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 style="margin: 0;">All Parameters</h2>
+                    <button class="btn-small btn-secondary" onclick="initializeCarParameters()" style="margin-left: 1rem;">
+                        Initialize Car Parameters
+                    </button>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <span style="color: var(--text-dim); font-size: 0.9rem;">
+                        💡 Car parameters (tire pressure, etc.) are tracked across sessions to analyze performance
+                    </span>
+                </div>
+                
+                <!-- Subteam Tabs -->
+                <div class="subteam-tabs" id="subteam-tabs">
+                    {% if role == "admin" %}
+                    <button class="tab-button active" data-subteam="" onclick="switchSubteamTab('')">
+                        All
+                    </button>
+                    <button class="tab-button" data-subteam="Suspension" onclick="switchSubteamTab('Suspension')">
+                        Suspension
+                    </button>
+                    <button class="tab-button" data-subteam="Powertrain" onclick="switchSubteamTab('Powertrain')">
+                        Powertrain
+                    </button>
+                    <button class="tab-button" data-subteam="Ergo" onclick="switchSubteamTab('Ergo')">
+                        Ergo
+                    </button>
+                    <button class="tab-button" data-subteam="DAQ" onclick="switchSubteamTab('DAQ')">
+                        DAQ
+                    </button>
+                    <button class="tab-button" data-subteam="Aero" onclick="switchSubteamTab('Aero')">
+                        Aero
+                    </button>
+                    <button class="tab-button" data-subteam="Mechanical" onclick="switchSubteamTab('Mechanical')">
+                        Mechanical
+                    </button>
+                    <button class="tab-button" data-subteam="MoTeC" onclick="switchSubteamTab('MoTeC')">
+                        MoTeC
+                    </button>
+                    {% else %}
+                        {% if user_subteam %}
+                        <button class="tab-button active" data-subteam="{{ user_subteam }}" onclick="switchSubteamTab('{{ user_subteam }}')">
+                            {{ user_subteam }}
+                        </button>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                
+                <!-- Subteam View Summary (shown when a specific subteam is selected) -->
+                <div id="subteam-view-summary" class="subteam-view-summary" style="display: none;">
+                    <div class="subteam-stats">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Parameters</div>
+                            <div class="stat-value" id="subteam-total-params">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Categories</div>
+                            <div class="stat-value" id="subteam-categories">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Recently Updated</div>
+                            <div class="stat-value" id="subteam-recent-updates">-</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Category Dropdown -->
+                <div class="category-filter" id="category-filter" style="display: none; margin-bottom: 1rem;">
+                    <label for="category-select" style="margin-right: 0.5rem; color: var(--text-light);">Category:</label>
+                    <select id="category-select" class="category-select" onchange="switchCategory(this.value)">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                
+                <div class="table-container">
+                    <table id="parameters-table" class="parameters-table">
+                        <thead>
+                            <tr>
+                                <th>Display Name</th>
+                                <th>Subteam</th>
+                                <th>Current Value</th>
+                                <th>Unit</th>
+                                <th>Last Updated</th>
+                                <th>Updated By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="parameters-tbody">
+                            {% for param in parameters %}
+                            <tr data-parameter="{{ param.parameter_name }}" data-subteam="{{ param.subteam }}">
+                                <td>
+                                    <strong id="display-{{ param.parameter_name }}">{{ param.parameter_name }}</strong>
+                                    <div class="parameter-details">
+                                        <span class="parameter-details-toggle" onclick="toggleParameterDetails(this)">Show ID</span>
+                                        <div class="parameter-details-content">{{ param.parameter_name }}</div>
+                                    </div>
+                                </td>
+                                <td>{{ param.subteam }}</td>
+                                <td><strong>{{ param.current_value }}</strong></td>
+                                <td id="unit-{{ param.parameter_name }}">-</td>
+                                <td>{{ param.updated_at[:19] if param.updated_at|length > 19 else param.updated_at }}</td>
+                                <td>{{ param.updated_by }}</td>
+                                <td>
+                                    <button class="btn-small btn-primary" onclick="editParameter('{{ param.parameter_name }}')" style="margin-right: 0.5rem;">
+                                        Edit
+                                    </button>
+                                    <button class="btn-small btn-secondary" onclick="showHistory('{{ param.parameter_name }}')">
+                                        History
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Sessions Section -->
+            <section class="parameters-section" id="sessions-section" style="margin-top: 2rem; display: none;">
+                <h2>Session History</h2>
+                <div style="margin-bottom: 1rem; color: var(--text-dim); font-size: 0.9rem;">
+                    Uploaded sessions with parameter snapshots and performance data
+                </div>
+                <div class="table-container">
+                    <table id="sessions-table" class="parameters-table">
+                        <thead>
+                            <tr>
+                                <th>Session</th>
+                                <th>File</th>
+                                <th>Uploaded</th>
+                                <th>Performance</th>
+                                <th>Parameters Captured</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sessions-tbody">
+                            <tr><td colspan="6" style="text-align: center; color: var(--text-dim);">Loading sessions...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- MoTeC Files Section -->
+            <section id="motec-section" class="parameters-section" style="margin-top: 2rem; display: none;">
+                <h2>MoTeC Files</h2>
+                <div style="margin-bottom: 1rem;">
+                    <form id="motec-upload-form" enctype="multipart/form-data" style="display: flex; gap: 1rem; align-items: end;">
+                        <div style="flex: 1;">
+                            <label for="motec-file-input" style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--word-text);">Upload .ldx or .ld file:</label>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="file" id="motec-file-input" accept=".ldx,.ld" required style="flex: 1; padding: 0.5rem; border: 1px solid var(--word-border); border-radius: 2px; background: var(--word-bg); color: var(--word-text); cursor: pointer; font-size: 0.9rem;">
+                                <span id="motec-file-name" style="color: var(--word-text-secondary); font-size: 0.85rem; min-width: 150px;">No file selected</span>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary" style="height: fit-content;">Upload</button>
+                    </form>
+                </div>
+                <div class="table-container">
+                    <table class="parameters-table">
+                        <thead>
+                            <tr>
+                                <th>Filename</th>
+                                <th>Type</th>
+                                <th>Size</th>
+                                <th>Uploaded</th>
+                                <th>Details</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="motec-files-tbody">
+                            <tr><td colspan="6" style="text-align: center; color: var(--text-dim);">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Edit Parameter Modal -->
+            <div id="edit-parameter-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Edit Parameter</h3>
+                        <button class="close" onclick="closeEditParameter()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                    <form id="edit-parameter-form" class="parameter-form">
+                        <input type="hidden" id="edit-parameter-name" name="parameter_name">
+                        <input type="hidden" id="edit-subteam" name="subteam">
+                        
+                        <div class="form-group">
+                            <label for="edit-display-name">Parameter</label>
+                            <input type="text" id="edit-display-name" readonly 
+                                   style="background: var(--dark-bg); color: var(--text-dim); cursor: not-allowed;">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-current-value">Current Value</label>
+                            <input type="text" id="edit-current-value" readonly 
+                                   style="background: var(--dark-bg); color: var(--text-dim); cursor: not-allowed;">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-new-value">New Value <span id="edit-value-range" style="color: var(--text-dim); font-size: 0.85em;"></span></label>
+                            <input type="text" id="edit-new-value" name="new_value" required>
+                            <small id="edit-value-unit" style="color: var(--text-dim);"></small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-comment">Comment (Optional)</label>
+                            <input type="text" id="edit-comment" name="comment" 
+                                   placeholder="Brief comment about this change">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="edit-queue" name="queue" onchange="toggleCarSelector()">
+                                Add to queue (requires admin approval)
+                            </label>
+                        </div>
+                        
+                        <div class="form-group" id="car-selector-group" style="display: none;">
+                            <label for="edit-car-id">Car (Optional - for multi-car support)</label>
+                            <select id="edit-car-id" name="car_id" style="width: 100%; padding: 0.5rem; border: 1px solid var(--word-border); border-radius: 2px; background: var(--word-bg); color: var(--word-text);">
+                                <option value="">No specific car (apply to all)</option>
+                            </select>
+                            <small style="color: var(--word-textSecondary);">Select a car to associate this queued change with a specific vehicle</small>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem;">
+                            <button type="submit" class="btn-primary">Update Parameter</button>
+                            <button type="button" class="btn-secondary" onclick="closeEditParameter()">Cancel</button>
+                        </div>
+                    </form>
+                    <div id="edit-parameter-message" class="message" style="margin-top: 1rem;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Modal -->
+            <div id="history-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close" onclick="closeHistory()">&times;</span>
+                    <h2>Parameter History: <span id="history-parameter-name"></span></h2>
+                    <div id="history-content" class="history-content"></div>
+                </div>
+            </div>
+
+            <!-- User Management Modal (Admin Only) -->
+            {% if role == "admin" %}
+            <div id="users-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close" onclick="closeUserManagement()">&times;</span>
+                    <h2>User Management</h2>
+                    <div id="users-content" class="users-content"></div>
+                </div>
+            </div>
+            {% endif %}
+    </main>
+    
+    <!-- Status Bar - Word style -->
+    <div class="status-bar">
+        <div>Ready</div>
+        <div>USC Racing Parameter Management</div>
+    </div>
+</div>
+
+<script>
+// Ribbon tab switching
+function switchRibbonTab(tab, event) {
+    // Update active tab
+    document.querySelectorAll('.ribbon-tab').forEach(t => t.classList.remove('active'));
+    if (event && event.target) {
+        const tabElement = event.target.closest('.ribbon-tab');
+        if (tabElement) tabElement.classList.add('active');
+    } else {
+        // Fallback: find tab by data attribute or text
+        const tabs = document.querySelectorAll('.ribbon-tab');
+        tabs.forEach(t => {
+            if (t.textContent.includes(tab.charAt(0).toUpperCase() + tab.slice(1))) {
+                t.classList.add('active');
+            }
+        });
+    }
+    
+    // Show/hide content sections
+    const sections = {
+        'home': ['parameters-section', 'queue-section', 'motec-section'],
+        'parameters': ['parameters-section'],
+        'files': ['motec-section']
+    };
+    
+    // Hide all sections first
+    document.querySelectorAll('#parameters-section, #queue-section, #motec-section').forEach(s => {
+        if (s) s.style.display = 'none';
+    });
+    
+    // Show relevant sections
+    if (sections[tab]) {
+        sections[tab].forEach(sectionId => {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.style.display = 'block';
+            }
+        });
+    }
+    
+    // Update ribbon content based on tab
+    const ribbonContent = document.getElementById('ribbon-content');
+    if (tab === 'home') {
+        ribbonContent.innerHTML = `
+            <div class="ribbon-group">
+                <div class="ribbon-group-label">View</div>
+                <div class="ribbon-buttons">
+                    <button class="ribbon-button" onclick="loadParameters()">All Parameters</button>
+                </div>
+            </div>
+            <div class="ribbon-group">
+                <div class="ribbon-group-label">Actions</div>
+                <div class="ribbon-buttons">
+                    <button class="ribbon-button" onclick="initializeCarParameters()">Initialize</button>
+                </div>
+            </div>
+        `;
+    } else if (tab === 'parameters') {
+        ribbonContent.innerHTML = `
+            <div class="ribbon-group">
+                <div class="ribbon-group-label">Edit</div>
+                <div class="ribbon-buttons">
+                    <button class="ribbon-button" onclick="alert('Click Edit on a parameter row to edit')">Edit Parameter</button>
+                    <button class="ribbon-button" onclick="alert('Click History on a parameter row to view history')">View History</button>
+                </div>
+            </div>
+            <div class="ribbon-group">
+                <div class="ribbon-group-label">Filter</div>
+                <div class="ribbon-buttons">
+                    <button class="ribbon-button" onclick="document.querySelector('.subteam-tabs')?.scrollIntoView({behavior: 'smooth'})">By Subteam</button>
+                    <button class="ribbon-button" onclick="document.getElementById('search')?.focus()">Search</button>
+                </div>
+            </div>
+        `;
+    } else if (tab === 'files') {
+        ribbonContent.innerHTML = `
+            <div class="ribbon-group">
+                <div class="ribbon-group-label">Upload</div>
+                <div class="ribbon-buttons">
+                    <button class="ribbon-button" onclick="document.getElementById('motec-file-input')?.click()">Upload File</button>
+                </div>
+            </div>
+            <div class="ribbon-group">
+                <div class="ribbon-group-label">Manage</div>
+                <div class="ribbon-buttons">
+                    <button class="ribbon-button" onclick="alert('Click Download on a file row')">Download</button>
+                    <button class="ribbon-button" onclick="alert('Click Delete on a file row')">Delete</button>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Make function globally accessible
+window.switchRibbonTab = switchRibbonTab;
+
+// Wire up ribbon tabs on page load
+document.addEventListener('DOMContentLoaded', () => {
+    const ribbonTabs = document.querySelectorAll('.ribbon-tab');
+    ribbonTabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            const tabText = tab.textContent.trim().toLowerCase();
+            let tabName = 'home';
+            if (tabText.includes('parameter')) tabName = 'parameters';
+            else if (tabText.includes('file')) tabName = 'files';
+            switchRibbonTab(tabName, e);
+        });
+    });
+    
+    // Initialize with home tab
+    switchRibbonTab('home');
+});
+</script>
+
+    <script src="/static/js/app.js?v=2"></script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#F2F2F2] text-[#323130] font-sans antialiased;
+  }
+  
+  /* Word-style scrollbar */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #F2F2F2;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #C8C8C8;
+    border-radius: 2px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #A8A8A8;
+  }
+}
+
+@layer components {
+  /* Word-style buttons */
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-dark text-white font-medium py-1.5 px-4 rounded-sm transition-colors duration-150 shadow-sm;
+  }
+  
+  .btn-secondary {
+    @apply bg-white hover:bg-ribbon-hover text-word-text border border-word-border font-medium py-1.5 px-4 rounded-sm transition-colors duration-150 shadow-sm;
+  }
+  
+  .btn-small {
+    @apply text-sm py-1 px-3 rounded-sm font-medium transition-colors duration-150;
+  }
+  
+  /* Ribbon-style buttons */
+  .ribbon-btn {
+    @apply px-3 py-1.5 text-sm font-medium text-word-text hover:bg-ribbon-hover rounded-sm transition-colors duration-150;
+  }
+  
+  .ribbon-btn.active {
+    @apply bg-ribbon-active text-primary;
+  }
+  
+  /* Word-style cards */
+  .card {
+    @apply bg-white border border-word-border rounded-none p-6 shadow-word;
+  }
+  
+  /* Word-style inputs */
+  .input {
+    @apply bg-white border border-word-border rounded-none px-3 py-1.5 text-word-text placeholder-word-textSecondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary;
+  }
+  
+  /* Word-style tables */
+  .table-container {
+    @apply overflow-x-auto border border-[#D4D4D4] bg-white;
+  }
+  
+  .table {
+    @apply w-full border-collapse bg-white;
+  }
+  
+  .table th {
+    @apply bg-[#F2F2F2] px-4 py-2.5 text-left text-sm font-semibold text-[#323130] border-b border-[#D4D4D4];
+  }
+  
+  .table td {
+    @apply px-4 py-2.5 text-sm text-[#323130] border-b border-[#D4D4D4];
+  }
+  
+  .table tr:hover {
+    @apply bg-[#F2F2F2]/50;
+  }
+  
+  /* Word-style modals */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4;
+  }
+  
+  .modal-content {
+    @apply bg-white border border-[#D4D4D4] rounded-none max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-[0_4px_8px_rgba(0,0,0,0.15)];
+  }
+  
+  /* Word-style tabs */
+  .tab-button {
+    @apply px-4 py-2 bg-ribbon border border-word-border border-b-0 text-sm font-medium text-word-text hover:bg-ribbon-hover transition-colors;
+  }
+  
+  .tab-button.active {
+    @apply bg-white border-primary border-b-white text-primary;
+  }
+  
+  /* Ribbon toolbar */
+  .ribbon-toolbar {
+    @apply bg-ribbon border-b border-word-border px-4 py-2 flex items-center gap-2;
+  }
+  
+  /* Word-style ribbon tabs */
+  .ribbon-tab {
+    @apply px-4 py-2 bg-[#F2F2F2] border-r border-[#D4D4D4] flex flex-col items-center justify-center min-w-[80px] hover:bg-[#E1E1E1] transition-colors;
+  }
+  
+  .ribbon-tab.active {
+    @apply bg-white border-b-2 border-b-[#2B579A] border-r border-[#D4D4D4];
+  }
+  
+  /* Ribbon groups - Word style */
+  .ribbon-group {
+    @apply border-r border-[#D4D4D4] pr-4 last:border-r-0;
+  }
+  
+  .ribbon-group-label {
+    @apply text-[10px] text-[#666666] mb-1.5 font-medium uppercase tracking-wide;
+  }
+  
+  .ribbon-button {
+    @apply px-3 py-1.5 text-sm text-[#323130] hover:bg-[#E1E1E1] rounded-sm transition-colors border border-transparent hover:border-[#D4D4D4];
+  }
+  
+  /* Word-style section headers */
+  .section-header {
+    @apply text-xl font-semibold text-word-text mb-4 pb-2 border-b border-word-border;
+  }
+}

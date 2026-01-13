@@ -1,0 +1,15 @@
+[Unit]
+Description=USC Racing Parameter Management System
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/USC-Racing-config/backend
+Environment="PATH=/home/pi/USC-Racing-config/venv/bin"
+ExecStart=/home/pi/USC-Racing-config/venv/bin/python main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
