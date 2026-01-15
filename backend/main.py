@@ -45,7 +45,7 @@ from internal.registered_users import (
     get_all_registered_users,
     remove_user_from_registered
 )
-from internal.models import ParameterUpdate, UserCreate
+from internal.models import ParameterUpdate, UserCreate, CarCreate
 from internal.motec_file_manager import (
     save_uploaded_file,
     get_all_files,
@@ -63,6 +63,7 @@ from internal.car_parameters import (
     remove_car_parameter_definition,
     initialize_car_parameters_in_db
 )
+from internal.csv_parameter_importer import import_csv_file, import_csv_content
 from internal.session_tracker import (
     create_session_from_file,
     get_all_sessions,
@@ -1323,16 +1324,11 @@ async def api_get_cars(request: Request):
 
 
 @app.post("/api/cars")
-async def api_create_car(request: Request, car_data: dict):
+async def api_create_car(request: Request, car_data: CarCreate):
     """Create or update a car"""
     require_auth(request)
-    car_identifier = car_data.get("car_identifier")
-    display_name = car_data.get("display_name")
     
-    if not car_identifier:
-        raise HTTPException(status_code=400, detail="car_identifier is required")
-    
-    car = await get_or_create_car(car_identifier, display_name)
+    car = await get_or_create_car(car_data.car_identifier, car_data.display_name)
     return {"car": car}
 
 
@@ -1652,6 +1648,50 @@ async def api_initialize_car_parameters(request: Request):
         "count": len(initialized),
         "message": f"Initialized {len(initialized)} car parameters in database"
     }
+
+
+@app.post("/api/car-parameters/import-csv")
+async def api_import_csv_parameters(
+    request: Request,
+    file: UploadFile = File(...),
+    overwrite_existing: bool = Form(False, description="Overwrite existing definitions with same link_key")
+):
+    """Import car parameter definitions from CSV file"""
+    await require_role(request, settings.ROLE_ADMIN)
+    
+    try:
+        # Read CSV content
+        content = await file.read()
+        csv_content = content.decode('utf-8')
+        
+        # Import from content
+        results = import_csv_content(csv_content, overwrite_existing=overwrite_existing)
+        
+        return {
+            "status": "success",
+            "created": results["created"],
+            "updated": results["updated"],
+            "skipped": results["skipped"],
+            "total_rows": results["total_rows"],
+            "errors": results["errors"],
+            "message": f"Imported CSV: {results['created']} created, {results['updated']} updated, {results['skipped']} skipped"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error importing CSV: {str(e)}")
+
+
+@app.get("/api/car-parameters/definitions/link-key/{link_key}")
+async def api_get_car_parameter_definition_by_link_key(request: Request, link_key: str):
+    """Get definition for a specific car parameter by link_key"""
+    require_auth(request)
+    
+    from internal.car_parameters import get_car_parameter_definition_by_link_key
+    definition = get_car_parameter_definition_by_link_key(link_key)
+    
+    if not definition:
+        raise HTTPException(status_code=404, detail="Car parameter definition not found")
+    
+    return {"definition": definition}
 
 
 # Session Tracking & Comparison endpoints

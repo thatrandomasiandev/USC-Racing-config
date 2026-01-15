@@ -3,12 +3,53 @@ Car Parameters Management - Define and manage car parameters like tire pressure
 Similar to registered_users.py pattern - stores parameter definitions
 """
 import json
+import re
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 BASE_DIR = Path(__file__).parent.parent.parent
 CAR_PARAMETERS_FILE = BASE_DIR / "data" / "car_parameters.json"
+
+
+def generate_link_key(subteam: str, tab: str, variable_name: str) -> str:
+    """
+    Generate composite link key: subteam_tab_variablename
+    Normalizes input by lowercasing, replacing spaces/special chars with underscores,
+    and collapsing multiple underscores.
+    
+    Args:
+        subteam: Subteam name (e.g., "Suspension")
+        tab: Tab/category name (e.g., "Damper" or empty string)
+        variable_name: Variable name (e.g., "FL HS Rebound")
+    
+    Returns:
+        Normalized link key (e.g., "suspension_damper_fl_hs_rebound")
+    """
+    def normalize(text: str) -> str:
+        """Normalize a string for use in link key"""
+        if not text:
+            return ""
+        # Lowercase and replace spaces/special chars with underscores
+        normalized = text.lower()
+        normalized = re.sub(r'[^a-z0-9]', '_', normalized)
+        # Collapse multiple underscores
+        normalized = re.sub(r'_+', '_', normalized)
+        # Strip leading/trailing underscores
+        return normalized.strip('_')
+    
+    parts = []
+    parts.append(normalize(subteam))
+    
+    # Only add tab if it's not empty
+    if tab and tab.strip():
+        parts.append(normalize(tab))
+    
+    parts.append(normalize(variable_name))
+    
+    # Join parts with underscores and clean up
+    link_key = '_'.join(filter(None, parts))
+    return link_key
 
 
 def ensure_car_parameters_file():
@@ -94,9 +135,15 @@ def get_all_car_parameter_definitions() -> List[Dict[str, Any]]:
 
 
 def get_car_parameter_definition(parameter_name: str) -> Optional[Dict[str, Any]]:
-    """Get definition for a specific car parameter"""
+    """Get definition for a specific car parameter by parameter_name"""
     params = get_all_car_parameter_definitions()
     return next((p for p in params if p.get("parameter_name") == parameter_name), None)
+
+
+def get_car_parameter_definition_by_link_key(link_key: str) -> Optional[Dict[str, Any]]:
+    """Get definition for a specific car parameter by link_key"""
+    params = get_all_car_parameter_definitions()
+    return next((p for p in params if p.get("link_key") == link_key), None)
 
 
 def add_car_parameter_definition(
@@ -108,16 +155,47 @@ def add_car_parameter_definition(
     min_value: Optional[str] = None,
     max_value: Optional[str] = None,
     motec_channel: Optional[str] = None,
-    description: Optional[str] = None
+    description: Optional[str] = None,
+    link_key: Optional[str] = None,
+    tab: Optional[str] = None,
+    inject_type: Optional[str] = None,
+    variable_name: Optional[str] = None,
+    param_type: Optional[str] = None
 ) -> bool:
-    """Add or update a car parameter definition"""
+    """
+    Add or update a car parameter definition.
+    
+    Args:
+        parameter_name: Snake case parameter name (for backward compatibility)
+        display_name: Human-readable display name
+        subteam: Subteam name
+        unit: Unit of measurement
+        default_value: Default value
+        min_value: Minimum allowed value (optional)
+        max_value: Maximum allowed value (optional)
+        motec_channel: MoTeC channel name (optional)
+        description: Description text (optional)
+        link_key: Link key identifier (optional, will be generated if not provided and tab/variable_name are provided)
+        tab: Tab/category name (optional)
+        inject_type: Inject type - "Constant" or "Comment" (optional)
+        variable_name: Variable name (optional, used for link key generation)
+        param_type: Parameter type - "int", "float", "string", "dropdown" (optional)
+    """
     data = load_car_parameters()
     params = data.get("parameters", [])
     
-    # Check if already exists
+    # Generate link_key if not provided but we have the necessary fields
+    if not link_key and subteam and variable_name:
+        link_key = generate_link_key(subteam, tab or "", variable_name)
+    
+    # Check if already exists by parameter_name or link_key
     existing_index = None
     for i, p in enumerate(params):
         if p.get("parameter_name") == parameter_name:
+            existing_index = i
+            break
+        # Also check by link_key if provided
+        if link_key and p.get("link_key") == link_key:
             existing_index = i
             break
     
@@ -133,8 +211,23 @@ def add_car_parameter_definition(
         "description": description or ""
     }
     
+    # Add new fields if provided
+    if link_key:
+        param_def["link_key"] = link_key
+    if tab is not None:
+        param_def["tab"] = tab or ""
+    if inject_type:
+        param_def["inject_type"] = inject_type
+    if variable_name:
+        param_def["variable_name"] = variable_name
+    if param_type:
+        param_def["type"] = param_type
+    
     if existing_index is not None:
-        params[existing_index] = param_def
+        # Update existing - merge new fields with existing ones
+        existing_param = params[existing_index]
+        existing_param.update(param_def)
+        params[existing_index] = existing_param
     else:
         params.append(param_def)
     

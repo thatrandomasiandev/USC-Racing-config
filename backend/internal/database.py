@@ -438,7 +438,8 @@ async def add_to_queue(
     new_value: str,
     current_value: Optional[str],
     submitted_by: str,
-    comment: Optional[str] = None
+    comment: Optional[str] = None,
+    car_id: Optional[str] = None
 ) -> str:
     """Add parameter change to queue. Returns form_id."""
     import uuid
@@ -449,9 +450,9 @@ async def add_to_queue(
     try:
         await db.execute("""
             INSERT INTO parameter_queue 
-            (parameter_name, subteam, new_value, current_value, submitted_by, submitted_at, comment, form_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (parameter_name, subteam, new_value, current_value, submitted_by, now, comment, form_id))
+            (parameter_name, subteam, new_value, current_value, submitted_by, submitted_at, comment, form_id, car_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (parameter_name, subteam, new_value, current_value, submitted_by, now, comment, form_id, car_id))
         await db.commit()
         return form_id
     finally:

@@ -110,3 +110,36 @@ class CarCreate(BaseModel):
     car_identifier: str = Field(..., min_length=1, description="Unique car identifier")
     display_name: Optional[str] = Field(None, description="Display name for the car")
 
+
+class CarParameterDefinition(BaseModel):
+    """Car parameter definition with link key support"""
+    parameter_name: str = Field(..., description="Snake case parameter name (for backward compatibility)")
+    display_name: str = Field(..., description="Human-readable display name")
+    subteam: str = Field(..., description="Subteam name")
+    unit: str = Field(..., description="Unit of measurement")
+    default_value: str = Field(..., description="Default value")
+    min_value: Optional[str] = Field(None, description="Minimum allowed value")
+    max_value: Optional[str] = Field(None, description="Maximum allowed value")
+    motec_channel: Optional[str] = Field(None, description="MoTeC channel name")
+    description: Optional[str] = Field(None, description="Description text")
+    link_key: Optional[str] = Field(None, description="Link key identifier (composite key)")
+    tab: Optional[str] = Field(None, description="Tab/category name")
+    inject_type: Optional[str] = Field(None, description="Inject type: Constant or Comment")
+    variable_name: Optional[str] = Field(None, description="Variable name from CSV")
+    type: Optional[str] = Field(None, description="Parameter type: int, float, string, dropdown")
+    
+    class Config:
+        from_attributes = True
+        json_schema_extra = {
+            "example": {
+                "parameter_name": "damper_fl_hs_rebound",
+                "display_name": "FL HS Rebound",
+                "subteam": "Suspension",
+                "tab": "Damper",
+                "link_key": "suspension_damper_fl_hs_rebound",
+                "unit": "turns",
+                "default_value": "0",
+                "type": "int",
+                "inject_type": "Constant"
+            }
+        }
